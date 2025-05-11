@@ -375,13 +375,12 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
   Future<void> _showAddHabitDialog() async {
     final titleCtrl = TextEditingController();
-    final unitCtrl = TextEditingController(text: 'kg');
-    final goalCtrl = TextEditingController(text: '5');
+    final unitCtrl  = TextEditingController(text: 'kg');
+    final goalCtrl  = TextEditingController(text: '5');
 
-    final ok = await showDialog<bool>(
+    final added = await showDialog<bool>(
       context: context,
-      builder:
-          (_) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Create Habit'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -397,9 +396,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
             TextField(
               controller: goalCtrl,
               decoration: const InputDecoration(labelText: 'Goal'),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
           ],
         ),
@@ -416,36 +413,25 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       ),
     );
 
-    if (ok == true && titleCtrl.text.trim().isNotEmpty) {
-      setState(() {
-        _habits.add(
-          Habit(
-            title: titleCtrl.text.trim(),
-            unit: unitCtrl.text.trim(),
-            goal: double.tryParse(goalCtrl.text) ?? 0,
-            currentValue: 0,
-            quickAdds: const [],
-          ),
-        );
+    // ── If user confirmed and title is not empty ──────────────────────────────
+    if (added == true && titleCtrl.text.trim().isNotEmpty) {
+      final newHabit = Habit(
+        title       : titleCtrl.text.trim(),
+        unit        : unitCtrl.text.trim(),
+        goal        : double.tryParse(goalCtrl.text) ?? 0,
+        currentValue: 0,
+        quickAdds   : const [],
+      );
 
-      });
+      // 1. persist to SQLite (will replace if the title already exists)
+      await _repo.upsertHabit(newHabit, user_email);
+
+      // 2. reload lists & charts exactly once → UI refreshed, no duplicates
+      setState(() => _habits.add(newHabit));
+
+      await _loadAllData();
+
     }
-
-    final newHabit = Habit(
-             title : titleCtrl.text.trim(),
-        unit  : unitCtrl.text.trim(),
-         goal  : double.tryParse(goalCtrl.text) ?? 0,
-         currentValue: 0,
-         quickAdds   : const [],
-    );
-    await _repo.upsertHabit(newHabit, user_email);
-    setState(() => _habits.add(newHabit));
-    await _loadAllData();
-  }
-
-  Future<void> _clearAll() async {
-    await DbHelper().deleteAllEntries();
-    await _loadAllData();
   }
 
   // ---------------------------------------------------------------------------
