@@ -51,6 +51,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   int _runningTotal = 0; // what we show & store
   int? _lastSavedSteps; // last value written to DB
 
+  int _selectedIndex = 1;
 
   // ---------------------------------------------------------------------------
   @override
@@ -418,6 +419,20 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     await _loadAllData();
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (index == 0) { // Home tab tapped
+      Navigator.pop(context); // Assumes TrackHabitScreen was pushed from HomePage
+    } else if (index == 1) {
+      // Already on Track Habit screen, do nothing or refresh
+      _loadAllData(); // Optional: refresh data if user taps current tab
+    }
+    // You can add navigation logic for other tabs (e.g., Community, Tips & Learning) here
+  }
+
   // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
@@ -516,6 +531,37 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
         child: const Icon(Icons.add),
         tooltip: 'New Habit',
         onPressed: _showAddHabitDialog,
+      ),
+      // Add the Bottom Navigation Bar
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.track_changes), // Example icon for Track Habit
+            label: 'Track Habit',
+          ),
+          BottomNavigationBarItem( // Assuming these tabs exist in your design
+            icon: Icon(Icons.group),
+            label: 'Community',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.lightbulb_outline),
+            label: 'Tips & Learning',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex, // Set the current selected index
+        selectedItemColor: Colors.green, // Highlight color for selected item
+        unselectedItemColor: Colors.grey, // Unselected item color
+        showUnselectedLabels: true, // Always show labels
+        type: BottomNavigationBarType.fixed, // Ensures tabs are evenly spaced
+        onTap: _onItemTapped, // Handle tap events
       ),
     );
   }
