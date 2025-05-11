@@ -134,23 +134,23 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
               decoration: const InputDecoration(labelText: 'Unit (e.g. kg)'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _goalCtrl,
-              decoration: const InputDecoration(labelText: 'Goal'),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (v) {
-                final g = double.tryParse(v) ?? widget.habit.goal;
-                setState(() {
-                  if (_currentValue > g) {
-                    _currentValue = g;
-                    _currentValueCtrl.text = g.toStringAsFixed(1);
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 12),
+            // TextField(
+            //   controller: _goalCtrl,
+            //   decoration: const InputDecoration(labelText: 'Goal'),
+            //   keyboardType: const TextInputType.numberWithOptions(
+            //     decimal: true,
+            //   ),
+            //   onChanged: (v) {
+            //     final g = double.tryParse(v) ?? widget.habit.goal;
+            //     setState(() {
+            //       if (_currentValue > g) {
+            //         _currentValue = g;
+            //         _currentValueCtrl.text = g.toStringAsFixed(1);
+            //       }
+            //     });
+            //   },
+            // ),
+            // const SizedBox(height: 12),
             TextField(
               controller: _currentValueCtrl,
               decoration: InputDecoration(

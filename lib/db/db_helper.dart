@@ -112,6 +112,7 @@ class DbHelper {
     );
   }
 
+
   /// Inspect existing table and migrate only if 'date' is not TEXT.
   Future<void> _onConfigure(Database db) async {
     final info = await db.rawQuery("PRAGMA table_info('entries')");
@@ -130,7 +131,6 @@ class DbHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Create your existing entries table
     await db.execute('''
     CREATE TABLE users (
       email     TEXT PRIMARY KEY NOT NULL,
@@ -152,7 +152,6 @@ class DbHelper {
     )
   ''');
 
-    // Create the new steps table
     await db.execute('''
     CREATE TABLE steps (
       id         TEXT    PRIMARY KEY,
@@ -208,7 +207,7 @@ class DbHelper {
  ''');
   }
 
-  /// Insert or replace an entry, storing all dates as ISO-8601 strings.
+  // Insert or replace an entry, storing all dates as ISO-8601 strings.
   Future<void> upsertEntry(HabitEntry entry) async {
     final db = await database;
     print(
@@ -226,7 +225,7 @@ class DbHelper {
     print("✓ insert success, returned id: $id");
   }
 
-  /// Fetch last 7 days for the given habit, parsing ISO strings back to DateTime.
+  // Fetch last 7 days for the given habit, parsing ISO strings back to DateTime.
   Future<List<HabitEntry>> fetchLast7Days(
     String user_email,
     String habitTitle,
@@ -255,7 +254,7 @@ class DbHelper {
     }).toList();
   }
 
-  /// Group entries by month (YYYY-MM) and sum values.
+  // Group entries by month (YYYY-MM) and sum values.
   Future<List<HabitEntry>> fetchMonthlyTotals(
     String user_email,
     String habitTitle,
@@ -412,7 +411,7 @@ class DbHelper {
     ) latest
     ON substr(e.date,1,10) = latest.d AND e.updatedAt = latest.maxUpd
     ORDER BY e.date ASC
-  ''',
+    ''',
       [habit, start, end],
     );
 
@@ -455,4 +454,14 @@ class DbHelper {
       }
     }
   }
+
+  Future<void> deleteAllEntriesForHabit(String habitTitle) async {
+    final db = await database;
+    await db.delete(
+      'entries',
+      where: 'habitTitle = ?',
+      whereArgs: [habitTitle],
+    );
+  }
+
 }

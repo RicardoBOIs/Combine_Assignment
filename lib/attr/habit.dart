@@ -1,10 +1,10 @@
 class Habit {
   String title;
-  String unit;          // 'km' 或 'kg'
+  String unit;
   double goal;
   double currentValue;
   List<double> quickAdds;
-  bool usePedometer;    // ★ 是否走计步器，默认 false
+  bool usePedometer;
 
   Habit({
     required this.title,
@@ -12,7 +12,7 @@ class Habit {
     required this.goal,
     required this.currentValue,
     required this.quickAdds,
-    this.usePedometer = false,   // 新字段
+    this.usePedometer = false,
   });
 
   Habit copyWith({double? currentValue}) => Habit(

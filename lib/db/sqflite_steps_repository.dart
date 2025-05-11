@@ -17,7 +17,6 @@ class SqfliteStepsRepository {
     );
     print("✓ steps insert success, id = $id");
 
-    // Firestore 同步（可选调试）
     await FirebaseFirestore.instance
         .collection('steps')
         .doc(e.id)

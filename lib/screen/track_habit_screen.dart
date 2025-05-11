@@ -30,7 +30,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   late List<Habit> _habits;
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedHabitTitle = '';
+  String _selectedHabitTitle = '-';
 
   // chart / table data
   List<String> _last7Labels = [];
@@ -82,7 +82,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // SQLite helper – read the latest Short‑Walk total for today
+  // SQLite helper – read the latest Short‑Walk total for today
   // ---------------------------------------------------------------------------
   Future<void> _initSavedTotal() async {
     _runningTotal = await DbHelper().getLastSavedSteps() ?? 0;
@@ -247,6 +247,43 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       _last7Values = daily.values.toList();
       _monthlyTotals = monthly;
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // DELETE HABITS
+  // ---------------------------------------------------------------------------
+  Future<void> _confirmDelete(BuildContext ctx, int index, String title) async {
+    final sure = await showDialog<bool>(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Habit'),
+        content: Text('Are you sure you want to delete “$title”? '
+            'All its data will be removed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+
+    if (sure != true) return;
+
+    // 3. Remove from database and UI:
+    await _deleteHabitAndData(title, index);
+  }
+
+  Future<void> _deleteHabitAndData(String title, int index) async {
+    // 3a. Remove all local entries for that habit:
+    await DbHelper().deleteAllEntriesForHabit(title);
+    // 3b. Remove from Firestore:
+    await SyncService().deleteEntriesForHabit(title);
+    // 3c. Update your in-memory list and refresh the charts:
+    setState(() {
+      _habits.removeAt(index);
+    });
+    await _loadAllData();
   }
 
   // ---------------------------------------------------------------------------
@@ -455,49 +492,58 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                 Text(h.title, style: theme.textTheme.titleMedium),
                 if (!h
                     .usePedometer) // Do not display edit button for Short Walk
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () async {
-                      final todayEntries = await _repo.fetchRange(
-                        user_email,
-                        h.title,
-                        _selectedDate,
-                      );
-                      final key = DateFormat(
-                        'yyyy-MM-dd',
-                      ).format(_selectedDate);
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () async {
+                          final todayEntries = await _repo.fetchRange(
+                            user_email,
+                            h.title,
+                            _selectedDate,
+                          );
+                          final key = DateFormat(
+                            'yyyy-MM-dd',
+                          ).format(_selectedDate);
 
-                      HabitEntry? existing;
-                      try {
-                        existing = todayEntries.firstWhere(
-                          (e) => DateFormat('yyyy-MM-dd').format(e.date) == key,
-                        );
-                      } catch (_) {
-                        existing = null;
-                      }
+                          HabitEntry? existing;
+                          try {
+                            existing = todayEntries.firstWhere(
+                                  (e) => DateFormat('yyyy-MM-dd').format(e.date) == key,
+                            );
+                          } catch (_) {
+                            existing = null;
+                          }
 
-                      final result = await Navigator.push<Map<String, dynamic>>(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => EditHabitScreen(
+                          final result = await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => EditHabitScreen(
                                 habit: h,
                                 existingEntry: existing,
                                 initialDate: _selectedDate,
                               ),
-                        ),
-                      );
-                      if (result != null) {
-                        final updated = result['habit'] as Habit;
-                        final entry = result['entry'] as HabitEntry?;
-                        if (entry != null) {
-                          await _repo.deleteDay(entry.habitTitle, entry.date);
-                          await _repo.upsertEntry(entry);
-                        }
-                        setState(() => _habits[index] = updated);
-                        await _loadAllData();
-                      }
-                    },
+                            ),
+                          );
+                          if (result != null) {
+                            final updated = result['habit'] as Habit;
+                            final entry = result['entry'] as HabitEntry?;
+                            if (entry != null) {
+                              await _repo.deleteDay(entry.habitTitle, entry.date);
+                              await _repo.upsertEntry(entry);
+                            }
+                            setState(() => _habits[index] = updated);
+                            await _loadAllData();
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        tooltip: 'Delete Habit',
+                        onPressed: () => _confirmDelete(context, index, h.title),
+                      ),
+                    ],
                   ),
               ],
             ),

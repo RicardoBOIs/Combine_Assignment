@@ -8,4 +8,5 @@ abstract class HabitsRepository {
   Future<void> clearEntriesForHabit(String habitTitle);
   Future<List<HabitEntry>> fetchRange(String user_email, String habitTitle, DateTime pivotDate);
   Future<void> deleteDay(String habitTitle, DateTime date);
+  Future<void> deleteAllEntriesForHabit(String habitTitle);
 }

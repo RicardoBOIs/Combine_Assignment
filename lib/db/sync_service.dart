@@ -62,11 +62,9 @@ class SyncService {
 
   void start() {
     Future<void> _pushAllEntries() async {
-      // ① use the 'database' getter
       final database = await _dbHelper.database;
       final rows = await database.query('entries');
       for (final r in rows) {
-        // ② parse ISO-8601 strings back to DateTime
         final entry = HabitEntry(
           id: r['id'] as String,
           user_email: r['user_email'] as String,
@@ -83,7 +81,7 @@ class SyncService {
       }
     }
 
-    /// Pull every document from Firestore and upsert it into SQLite
+    // Pull every document from Firestore and upsert it into SQLite
     Future<void> _pullRemoteEntries() async {
       final snapshot = await _firestore.collection('entries').get();
       for (final doc in snapshot.docs) {

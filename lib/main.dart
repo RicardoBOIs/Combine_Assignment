@@ -30,10 +30,10 @@ class EcoApp extends StatelessWidget {
         colorSchemeSeed: Colors.green,
         scaffoldBackgroundColor: Colors.lightGreen.shade100,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.green,         // AppBar fill colour
-          foregroundColor: Colors.black,         // title & icon colour
-          centerTitle: true,                     // centre the title
-          elevation: 2,                          // shadow
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.black,
+          centerTitle: true,
+          elevation: 2,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(
               bottom: Radius.circular(30),
@@ -41,10 +41,10 @@ class EcoApp extends StatelessWidget {
           ),
         ),
         cardTheme: CardTheme(
-          color: Colors.lightGreen.shade50,                   // 卡片背景色
-          elevation: 2,                                        // 投影高度
-          margin: const EdgeInsets.symmetric(vertical: 8),     // 默认外边距
-          shape: RoundedRectangleBorder(                       // 圆角
+          color: Colors.lightGreen.shade50,
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(35),
           ),
         ),
@@ -55,8 +55,8 @@ class EcoApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green, // button fill
-            foregroundColor: Colors.black, // text/icon color
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.black,
           ),
         ),
       ),

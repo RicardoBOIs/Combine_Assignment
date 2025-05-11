@@ -53,4 +53,7 @@ class SqfliteHabitsRepository implements HabitsRepository {
   Future<void> deleteDay(String habitTitle, DateTime date) =>
       _db.deleteDay(habitTitle, date);
 
+  @override
+  Future<void> deleteAllEntriesForHabit(String habitTitle) =>
+      _db.deleteAllEntriesForHabit(habitTitle);
 }
