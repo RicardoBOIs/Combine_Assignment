@@ -14,7 +14,7 @@ class DbHelper {
   DbHelper._();
 
   static const _dbName = 'ecolife.db';
-  static const _dbVersion = 8;
+  static const _dbVersion = 9;
 
   Future<void> deleteAllEntries() async {
     final db = await database;
@@ -144,7 +144,7 @@ class DbHelper {
     await db.execute('''
     CREATE TABLE steps (
       id         TEXT    PRIMARY KEY,
-      user_email TEXT    NOT NULL,  
+      user_email TEXT    NOT NULL,
       day        TEXT    NOT NULL,
       count      REAL    NOT NULL,
       createdAt  TEXT    NOT NULL,
@@ -153,10 +153,11 @@ class DbHelper {
     )
   ''');
 
+    await db.execute('DROP TABLE IF EXISTS habits');
     await db.execute('''
     CREATE TABLE habits (
       user_email   TEXT    NOT NULL,
-      title        TEXT    NOT NULL,
+      title        TEXT    PRIMARY KEY,
       unit         TEXT,
       goal         REAL,
       currentValue REAL,
@@ -164,7 +165,6 @@ class DbHelper {
       usePedometer INTEGER,   -- 0 or 1
       createdAt    TEXT,
       updatedAt    TEXT,
-      PRIMARY KEY(title),
       FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
      );
    ''');

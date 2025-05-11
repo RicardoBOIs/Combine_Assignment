@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../attr/habit.dart';
 import '../attr/habit_entry.dart';
@@ -17,8 +18,6 @@ import '../db/sqflite_steps_repository.dart';
 import 'monthly_bar_chart.dart';
 import '../screen/home.dart'; // Import your home.dart for navigation
 
-final String userId = 'default_user';
-
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);
 
@@ -27,12 +26,12 @@ class TrackHabitScreen extends StatefulWidget {
 }
 
 class _TrackHabitScreenState extends State<TrackHabitScreen> {
-  String user_email = 'alice@example.com';   //sample user email
+  late String user_email;   //sample user email
   final HabitsRepository _repo = SqfliteHabitsRepository();
   late List<Habit> _habits=[];
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedHabitTitle = '-';
+  String? _selectedHabitTitle;
 
   // chart / table data
   List<String> _last7Labels = [];
@@ -60,6 +59,15 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   @override
   void initState() {
     super.initState();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    user_email = currentUser?.email ?? 'unknown@example.com';
+    if (user_email == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
 
     _selectedMonthlyEndDate = DateTime(
       DateTime.now().year,
@@ -80,7 +88,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       } else {
         _habits = saved;
       }
-      setState(() => _selectedHabitTitle = _habits.first.title);
       // now continue with your existing sync, permission and data-loading calls…
       SyncService().start();
       await _initSavedTotal();
@@ -88,7 +95,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       _startPedometer();
       await _loadAllData();
     }
-
     _initHabits();
   }
 
@@ -178,7 +184,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   // ---------------------------------------------------------------------------
   Future<void> _loadAllData() async {
     await _updateCurrentValues();
-    await _loadDataForSelectedHabit(_selectedHabitTitle);
+    await _loadDataForSelectedHabit(_selectedHabitTitle!);
   }
 
   Future<void> _updateCurrentValues() async {
@@ -202,8 +208,18 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _loadDataForSelectedHabit(String habitTitle) async {
-    final isStep =
-        _habits.firstWhere((h) => h.title == habitTitle).usePedometer;
+    // final isStep =
+    //     _habits.firstWhere((h) => h.title == habitTitle).usePedometer;
+    final isStep = _habits.firstWhere(
+          (h) => h.title == habitTitle,
+      orElse: () => Habit(
+        title: '',
+        unit: '',
+        goal: 0,
+        currentValue: 0,
+        quickAdds: [],
+      ),
+    ).usePedometer;
 
     if (isStep) {
       _selectedDate = DateTime.now();
@@ -288,7 +304,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
         orElse: () => HabitEntry(
           id: '',
           user_email: user_email,
-          habitTitle: _selectedHabitTitle,
+          habitTitle: _selectedHabitTitle!,
           date: dt,
           value: 0.0,
           createdAt: DateTime.now(),
@@ -355,7 +371,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     if (picked != null) {
       setState(() => _selectedDate = picked);
       await _updateCurrentValues();
-      await _loadDataForSelectedHabit(_selectedHabitTitle);
+      await _loadDataForSelectedHabit(_selectedHabitTitle!);
     }
   }
 
@@ -518,10 +534,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
             InteractiveTrendChart(
               values: _last7Values,
               labels: _last7Labels,
-              maxY:
-              _habits
-                  .firstWhere((h) => h.title == _selectedHabitTitle)
-                  .goal,
             ),
             const SizedBox(height: 24),
             Text('Monthly Totals (Last 12 months)',

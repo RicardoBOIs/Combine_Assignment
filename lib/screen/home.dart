@@ -478,7 +478,7 @@ class _HomePageState extends State<HomePage> {
                 ? InteractiveTrendChart(
               values: _last7Values,
               labels: _last7Labels,
-              maxY: _habits.firstWhere((h) => h.title == _selectedHabitForCharts).goal,
+              // maxY: _habits.firstWhere((h) => h.title == _selectedHabitForCharts).goal,
             )
                 : const SizedBox(
                 height: 120,

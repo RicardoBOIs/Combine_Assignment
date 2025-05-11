@@ -4,13 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 class InteractiveTrendChart extends StatefulWidget {
   final List<double> values;
   final List<String> labels;
-  final double maxY;
 
   const InteractiveTrendChart({
     Key? key,
     required this.values,
     required this.labels,
-    required this.maxY,
   })  : assert(values.length == labels.length),
         super(key: key);
 
@@ -30,8 +28,10 @@ class _InteractiveTrendChartState extends State<InteractiveTrendChart> {
         .toList();
 
     if (spots.isEmpty) {
-      return SizedBox(height: 120, child: Center(child: Text('No data')));
+      return const SizedBox(height: 120, child: Center(child: Text('No data')));
     }
+
+    final maxY = (widget.values.reduce((a, b) => a > b ? a : b) * 1.2).toDouble();
 
     return SizedBox(
       height: 120,
@@ -45,13 +45,14 @@ class _InteractiveTrendChartState extends State<InteractiveTrendChart> {
                 setState(() => _touchedIndex = resp!.lineBarSpots![0].x.toInt());
               }
             },
-            touchTooltipData: LineTouchTooltipData(getTooltipItems: (spots) => spots.map((spot) {
-              final label = widget.labels[spot.x.toInt()];
-              return LineTooltipItem(
-                '$label\n${spot.y.toStringAsFixed(1)}',
-                const TextStyle(fontSize: 12, color: Colors.black),
-              );
-            }).toList()),
+            touchTooltipData: LineTouchTooltipData(getTooltipItems: (spots) =>
+                spots.map((spot) {
+                  final label = widget.labels[spot.x.toInt()];
+                  return LineTooltipItem(
+                    '$label\n${spot.y.toStringAsFixed(1)}',
+                    const TextStyle(fontSize: 12, color: Colors.black),
+                  );
+                }).toList()),
           ),
           gridData: FlGridData(show: false),
           titlesData: FlTitlesData(
@@ -60,8 +61,11 @@ class _InteractiveTrendChartState extends State<InteractiveTrendChart> {
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
-                  final txt = widget.labels[idx].substring(5);
-                  return Text(txt, style: TextStyle(fontSize: 10));
+                  if (idx >= 0 && idx < widget.labels.length) {
+                    final txt = widget.labels[idx].substring(5);
+                    return Text(txt, style: const TextStyle(fontSize: 10));
+                  }
+                  return const SizedBox.shrink();
                 },
                 reservedSize: 24,
                 interval: 1,
@@ -93,9 +97,7 @@ class _InteractiveTrendChartState extends State<InteractiveTrendChart> {
           minX: 0,
           maxX: (spots.length - 1).toDouble(),
           minY: 0,
-          maxY: widget.maxY > 100
-              ? widget.maxY * 100
-              : widget.maxY,        // otherwise just use it directly
+          maxY: maxY,
         ),
       ),
     );
