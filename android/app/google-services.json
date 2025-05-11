@@ -1,0 +1,178 @@
+{
+  "project_info": {
+    "project_number": "589262777369",
+    "project_id": "ecolife-1c2ea",
+    "storage_bucket": "ecolife-1c2ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589262777369:android:ca48a799060469df330e88",
+        "android_client_info": {
+          "package_name": "com.example.assignment_test"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDxPhpFBhtmQlHIE8A1XGbCoB5F0GkaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589262777369-3iqlsvu5qn0fjih25cqqermen7qimadl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.assignmentTest"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589262777369:android:81951bd364e9f91a330e88",
+        "android_client_info": {
+          "package_name": "com.example.cleanproject"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589262777369-i9h59c0rmo8jjf9mig3pcv1uj3v25gba.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cleanproject",
+            "certificate_hash": "c70e7d5c9174cedfe6408da930e3102c1e68020a"
+          }
+        },
+        {
+          "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDxPhpFBhtmQlHIE8A1XGbCoB5F0GkaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589262777369-3iqlsvu5qn0fjih25cqqermen7qimadl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.assignmentTest"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589262777369:android:72887e0b69fd2ccc330e88",
+        "android_client_info": {
+          "package_name": "com.example.combined"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589262777369-ltiabanuhoj4opj84i8hmlqni09kshu5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.combined",
+            "certificate_hash": "c70e7d5c9174cedfe6408da930e3102c1e68020a"
+          }
+        },
+        {
+          "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDxPhpFBhtmQlHIE8A1XGbCoB5F0GkaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589262777369-3iqlsvu5qn0fjih25cqqermen7qimadl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.assignmentTest"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589262777369:android:b00042a6f9bf1e79330e88",
+        "android_client_info": {
+          "package_name": "com.example.ecolife"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589262777369-lmvr2doej58m6kugipt1feujgjdcno09.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ecolife",
+            "certificate_hash": "c70e7d5c9174cedfe6408da930e3102c1e68020a"
+          }
+        },
+        {
+          "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDxPhpFBhtmQlHIE8A1XGbCoB5F0GkaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589262777369-nk7oc3hqi3hgdfcf0t85iop5inmefgl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589262777369-3iqlsvu5qn0fjih25cqqermen7qimadl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.assignmentTest"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
