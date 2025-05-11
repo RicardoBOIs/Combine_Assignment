@@ -274,4 +274,66 @@ class RepositoryService {
       return -1; // signal “offline / failed”
     }
   }
+
+  Future<void> syncAllForUser(String email) async {
+    // Communities -----------------------------------------------------------
+    try {
+      final remoteComms = await _fb.streamCommunities().first;
+      for (final c in remoteComms) {
+        await _sql.insertCommunity(c);          // upsert: keeps newer rows
+      }
+    } catch (_) {/* offline: nothing to do */}
+
+    // Joins -----------------------------------------------------------------
+    try {
+      final remoteJoins = await _fb.streamJoinsForUser(email).first;
+      for (final j in remoteJoins) {
+        await _sql.upsertJoinEvent(j.email, j.communityID, j.status);
+      }
+    } catch (_) {}
+
+    // Rankings --------------------------------------------------------------
+    try {
+      final remoteRanks = await _fb.streamRankingsForUser(email).first;
+      for (final r in remoteRanks) {
+        await _sql.insertOrUpdateRanking(r);
+      }
+    } catch (_) {}
+  }
+
+
+  Future<void> syncAllAdmin() async {
+    // COMMUNITIES ───────────────────────────────────────────────
+    try {
+      final comms = await _fb.streamCommunities().first;
+      for (final c in comms) {
+        await _sql.insertCommunity(c);        // upsert
+      }
+    } catch (_) {}
+
+    // USERS ─────────────────────────────────────────────────────
+    try {
+      final users = await _fb.streamUsers().first;
+      for (final u in users) {
+        await _sql.insertUser(u);             // upsert
+      }
+    } catch (_) {}
+
+    // JOINS ─────────────────────────────────────────────────────
+    try {
+      final joins = await _fb.streamAllJoins().first;
+      for (final j in joins) {
+        await _sql.upsertJoinEvent(j.email, j.communityID, j.status);
+      }
+    } catch (_) {}
+
+    // RANKINGS ─────────────────────────────────────────────────
+    try {
+      final ranks = await _fb.streamAllRankings().first;
+      for (final r in ranks) {
+        await _sql.insertOrUpdateRanking(r);
+      }
+    } catch (_) {}
+  }
+
 }

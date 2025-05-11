@@ -79,6 +79,7 @@ class FirebaseService {
     return _joins.doc('$email\_$communityID').update(data);
   }
 
+
   Future<void> deleteJoinEvent(String email, int communityID) =>
       _joins.doc('$email\_$communityID').delete();
 
@@ -130,4 +131,26 @@ class FirebaseService {
   // ─── HABIT TITLES ────────────────────────────────────────────────────────
   /// Cloud side always returns the single built-in habit.
   List<String> get habitTitlesRemote => ['Step Counter'];
+
+
+  Stream<List<RankingModel>> streamRankingsForUser(String email) =>
+      _rankings
+          .where('email', isEqualTo: email)
+      // 👉 optional: keep highest-score first
+          .orderBy('score', descending: true)
+          .snapshots()
+          .map((s) =>
+          s.docs.map((d) => RankingModel.fromJson(d.data())).toList());
+
+  Stream<List<JoinEventModel>> streamAllJoins() =>
+      _joins.snapshots().map(
+            (s) => s.docs.map((d) => JoinEventModel.fromJson(d.data())).toList(),
+      );
+
+// Every document in rankings
+  Stream<List<RankingModel>> streamAllRankings() =>
+      _rankings.snapshots().map(
+            (s) => s.docs.map((d) => RankingModel.fromJson(d.data())).toList(),
+      );
+
 }

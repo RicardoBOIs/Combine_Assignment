@@ -21,7 +21,7 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
   final _repo = RepositoryService.instance;
   late Future<List<CommunityMain>> _futureCommunities;
   late final String currentEmail;         // non-nullable
-
+  late Future<void> _initialSync;
 
 
   String _searchTerm = '';
@@ -43,6 +43,7 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
     assert(user != null && user.email != null,
     'CommunityMain must be opened after a successful login.');
     currentEmail = user!.email!;
+    _initialSync = _repo.syncAllForUser(currentEmail);
     _reloadAll();
   }
 
@@ -112,6 +113,22 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initialSync,                     // wait for Firestore → SQLite sync
+      builder: (_, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          // still syncing – show a spinner
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        // sync finished – build the normal UI
+        return _buildScaffold(context);
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final now = DateTime.now();
     return Scaffold(
       appBar: AppBar(

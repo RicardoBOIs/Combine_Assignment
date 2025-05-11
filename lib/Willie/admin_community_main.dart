@@ -10,17 +10,45 @@ import 'admin_community_add_page.dart';
 import 'admin_community_edit_page.dart';
 import 'admin_community_score.dart';
 import 'admin_community_check_user_page.dart';
-// <-- make sure this file exists
-import '../../../YenHan/pages/login_page.dart';
+
 
 /* ────────────────────────────────────────────────────────────────
    ADMIN  ▸  DASHBOARD
  ──────────────────────────────────────────────────────────────── */
-class AdminMainPage extends StatelessWidget {
+class AdminMainPage extends StatefulWidget {
   const AdminMainPage({Key? key}) : super(key: key);
 
   @override
+  _AdminMainPageState createState() => _AdminMainPageState();
+}
+
+
+class _AdminMainPageState extends State<AdminMainPage> {
+  final _repo = RepositoryService.instance;
+  late Future<void> _initialSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialSync = _repo.syncAllAdmin();   // ← ONE call, done.
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initialSync,
+      builder: (_, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _buildScaffold();           // the original UI
+      },
+    );
+  }
+
+  Widget _buildScaffold(){
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),

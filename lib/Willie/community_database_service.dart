@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,7 +7,7 @@ import 'ranking_model.dart';
 import 'community_main_model.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-
+import '../YenHan/Databases/database_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -21,8 +20,8 @@ class DatabaseService {
   static const _communityTable = 'Community';
   static const _joinEventTable = 'JoinEvent';
   static const _rankingTable   = 'Ranking';
-  static const _stepsTable     = 'steps';      // ← keep only steps
   static const _usersTable     = 'users';
+  static const _stepsTable     = 'steps';
 
   // ─── OPEN / UPGRADE DB ───────────────────────────────────────────────────
   Future<Database> get database async {
@@ -49,8 +48,6 @@ class DatabaseService {
     await _createCommunityTable(db);
     await _createJoinEventTable(db);
     await _createRankingTable(db);
-    await _createUsersTable(db);
-    await _createStepsTable(db);
   }
 
   Future _onUpgrade(Database db, int oldV, int newV) async {
@@ -113,33 +110,6 @@ class DatabaseService {
     ''');
   }
 
-  Future _createUsersTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE $_usersTable (
-        email TEXT PRIMARY KEY NOT NULL,
-        username TEXT,
-        phone TEXT,
-        location TEXT
-      )
-    ''');
-  }
-
-  Future _createStepsTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE $_stepsTable (
-        id TEXT PRIMARY KEY,
-        user_email TEXT NOT NULL,
-        day TEXT NOT NULL,
-        count REAL NOT NULL,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        FOREIGN KEY(user_email) REFERENCES $_usersTable(email) ON DELETE CASCADE
-      )
-    ''');
-  }
-
-
-
   //–– Users
 
   Future<List<Map<String, dynamic>>> getAllUsers() async {
@@ -161,8 +131,6 @@ class DatabaseService {
     return db.delete(_usersTable, where: 'email = ?', whereArgs: [email]);
   }
 
-
-  //–– Habit Titles
 
   //–– Habit Titles
 
@@ -452,11 +420,6 @@ class DatabaseService {
         where: 'communityID = ?', whereArgs: [communityID]
     );
   }
-
-
-
-
-
 
   //–– Optionally close DB
   Future<void> close() async {
