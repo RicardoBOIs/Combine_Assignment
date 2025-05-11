@@ -8,9 +8,8 @@ import 'package:assignment_test/YenHan/pages/register_page.dart';
 import 'package:assignment_test/YenHan/pages/reset_page.dart';
 import 'package:assignment_test/YenHan/Databases//UserDao.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:assignment_test/YenHan/pages/admin_dashboard.dart';
 import 'package:assignment_test/screen/home.dart';
-
+import '../../admin_main.dart';
 
 const adminEmails = ['admin@example.com', 'johnleeyenhan@gmail.com'];
 
@@ -90,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
       if (adminEmails.contains(email)) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => AdminDashboardScreen()),
+          MaterialPageRoute(builder: (_) => AdminMain()),
         );
       } else {
         Navigator.pushReplacement(
@@ -235,7 +234,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
 
                         final Widget nextPage = adminEmails.contains(email)
-                            ? const AdminDashboardScreen()
+                            ? const AdminMain()
                             : const HomePage();
 
                         Navigator.pushReplacement(

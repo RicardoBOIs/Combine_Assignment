@@ -17,7 +17,7 @@ import '../../screen/track_habit_screen.dart'; // For navigation to the dedicate
 // Assuming you have this page for check-ins based on previous context
 import '../screen/check_in_page.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
-
+import '../../Willie/community_main.dart';
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -531,7 +531,14 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
             );
-          }else if (index==3){
+
+          }else if (index == 2) { // 'Track Habit' is at index 1
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
+            );
+
+          } else if (index==3){
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
