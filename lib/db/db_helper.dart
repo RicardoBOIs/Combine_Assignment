@@ -14,7 +14,7 @@ class DbHelper {
   DbHelper._();
 
   static const _dbName = 'ecolife.db';
-  static const _dbVersion = 9;
+  static const _dbVersion = 8;
 
   Future<void> deleteAllEntries() async {
     final db = await database;
@@ -153,7 +153,7 @@ class DbHelper {
     )
   ''');
 
-    await db.execute('DROP TABLE IF EXISTS habits');
+
     await db.execute('''
     CREATE TABLE habits (
       user_email   TEXT    NOT NULL,
@@ -210,6 +210,36 @@ class DbHelper {
      FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
    )
  ''');
+
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS habits(
+      user_email   TEXT    NOT NULL,
+      title        TEXT    PRIMARY KEY,
+      unit         TEXT,
+      goal         REAL,
+      currentValue REAL,
+      quickAdds    TEXT,
+      usePedometer INTEGER,
+      createdAt    TEXT,
+      updatedAt    TEXT,
+      FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
+    );
+  ''');
+
+    await db.execute('''
+    CREATE UNIQUE INDEX idx_steps_day
+      ON steps(day)
+  ''');
+    final seed = [
+      {
+        'email': 'alice@example.com',
+        'username': 'Alice',
+        'phone': '012-3456789',
+        'location': 'Kuala Lumpur',
+      },
+    ];
+
+
   }
 
   // Insert or replace an entry, storing all dates as ISO-8601 strings.

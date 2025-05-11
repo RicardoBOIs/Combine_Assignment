@@ -102,7 +102,8 @@ class SyncService {
         await _dbHelper.upsertEntry(entry);
       }
     }
-
+    _pushAllEntries();
+    _pullRemoteEntries();
     _connectivity.onConnectivityChanged.listen((status) {
       if (status == ConnectivityResult.none) {
         _showStatus('Offline mode');

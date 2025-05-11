@@ -20,7 +20,7 @@ class DatabaseService {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createTables,
 
     );
@@ -50,5 +50,61 @@ class DatabaseService {
 
 
     await db.execute('PRAGMA foreign_keys = ON');
+
+    await db.execute('''
+    CREATE TABLE habits (
+      user_email   TEXT    NOT NULL,
+      title        TEXT    PRIMARY KEY,
+      unit         TEXT,
+      goal         REAL,
+      currentValue REAL,
+      quickAdds    TEXT,      -- JSON‐encoded list of doubles
+      usePedometer INTEGER,   -- 0 or 1
+      createdAt    TEXT,
+      updatedAt    TEXT,
+      FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
+     );
+   ''');
+
+    await db.execute('''
+    CREATE TABLE entries (
+      id         TEXT PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      habitTitle TEXT,
+      date       TEXT,
+      value      REAL,
+      createdAt  TEXT,
+      updatedAt  TEXT,
+      FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
+    )
+  ''');
+
+    await db.execute('DROP TABLE IF EXISTS steps');
+    await db.execute('''
+   CREATE TABLE steps (
+     id         TEXT    PRIMARY KEY,
+     user_email TEXT    NOT NULL,
+     day        TEXT    NOT NULL,
+     count      REAL    NOT NULL,
+     createdAt  TEXT    NOT NULL,
+     updatedAt  TEXT    NOT NULL,
+     FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
+   )
+ ''');
+
+    await db.execute('''
+    CREATE UNIQUE INDEX idx_steps_day
+      ON steps(day)
+  ''');
+    final seed = [
+      {
+        'email': 'alice@example.com',
+        'username': 'Alice',
+        'phone': '012-3456789',
+        'location': 'Kuala Lumpur',
+      },
+    ];
+
+
   }
 }

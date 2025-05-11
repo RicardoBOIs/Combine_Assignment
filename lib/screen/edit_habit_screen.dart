@@ -4,6 +4,8 @@ import 'package:uuid/uuid.dart';
 
 import '../attr/habit.dart';
 import '../attr/habit_entry.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+final email = FirebaseAuth.instance.currentUser?.email ?? 'anonymous@local';
 
 class EditHabitScreen extends StatefulWidget {
   final Habit habit;
@@ -97,7 +99,7 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
 
     final entry = HabitEntry(
       id: id,
-      user_email: 'alice@example.com',
+      user_email: email,
       habitTitle: title,
       date: DateTime(_entryDate.year, _entryDate.month, _entryDate.day),
       value: clampedValue,

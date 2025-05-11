@@ -509,7 +509,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Last 7 Days', style: theme.textTheme.titleLarge),
+                Text( '7 days habits', style: theme.textTheme.titleLarge),
                 DropdownButton<String>(
                   value: _selectedHabitTitle,
                   items:
@@ -649,6 +649,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                             if (entry != null) {
                               await _repo.deleteDay(entry.habitTitle, entry.date);
                               await _repo.upsertEntry(entry);
+                              await SyncService().pushEntry(entry);
                             }
                             await _repo.upsertHabit(updated, user_email);
                             setState(() => _habits[index] = updated);

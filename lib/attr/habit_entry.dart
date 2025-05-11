@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class HabitEntry {
   final String id;
   final String user_email;
