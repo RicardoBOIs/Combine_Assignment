@@ -93,7 +93,9 @@ class _InteractiveTrendChartState extends State<InteractiveTrendChart> {
           minX: 0,
           maxX: (spots.length - 1).toDouble(),
           minY: 0,
-          maxY: widget.maxY,
+          maxY: widget.maxY > 100
+              ? widget.maxY * 100
+              : widget.maxY,        // otherwise just use it directly
         ),
       ),
     );

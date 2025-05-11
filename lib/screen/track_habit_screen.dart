@@ -14,6 +14,7 @@ import 'interactive_trend_chart.dart';
 import 'edit_habit_screen.dart';
 import '../attr/step_entry.dart';
 import '../db/sqflite_steps_repository.dart';
+import 'monthly_bar_chart.dart';
 
 final String userId = 'default_user';
 
@@ -37,23 +38,36 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   List<double> _last7Values = [];
   List<HabitEntry> _monthlyTotals = [];
 
+  // Which month to end on (first day of month)
+  late final DateTime _selectedMonthlyEndDate;
+
+  // Labels and values for the bar chart
+  List<String> _monthlyLabels = [];
+  List<double> _monthlyValues = [];
+
   // pedometer
   StreamSubscription<StepCount>? _stepSub;
   int? _sensorPrev; // last raw StepCount from sensor
   int _runningTotal = 0; // what we show & store
   int? _lastSavedSteps; // last value written to DB
 
+
   // ---------------------------------------------------------------------------
   @override
   void initState() {
     super.initState();
+
+    _selectedMonthlyEndDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+    );
 
     Future<void> _initHabits() async {
       final saved = await _repo.fetchHabits(user_email);
       if (saved.isEmpty) {
         // first run: seed defaults and persist them
         _habits = [
-          Habit(title: 'Reduce Plastic', unit: 'kg', goal: 10, currentValue: 0, quickAdds: []),
+          Habit(title: 'Reduce Plastic', unit: 'kg', goal: 1, currentValue: 0, quickAdds: []),
           Habit(title: 'Short Walk',    unit: 'steps', goal: 10000, currentValue: 0, quickAdds: [], usePedometer: true),
         ];
         for (var h in _habits) {
@@ -210,6 +224,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                 ),
               )
               .toList();
+      _prepareMonthlyChart();
 
       setState(() {
         _last7Labels = labels;
@@ -246,7 +261,45 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       _last7Values = daily.values.toList();
       _monthlyTotals = monthly;
     });
+    _prepareMonthlyChart();
   }
+
+  void _prepareMonthlyChart() {
+    // Build a list of 13 months ending at _selectedMonthlyEndDate
+    final end = DateTime(_selectedMonthlyEndDate.year, _selectedMonthlyEndDate.month, 1);
+    final window = <DateTime>[];
+    for (int i = 12; i >= 0; i--) {
+      window.add(DateTime(end.year, end.month - i, 1));
+    }
+
+    // Month labels like "May 24", "Jun 24", …, "May 25"
+    final labels = window
+        .map((dt) => DateFormat('MMM yy').format(dt))
+        .toList();
+
+    // Match against your raw _monthlyTotals (List<HabitEntry>)
+    final values = window.map((dt) {
+      final match = _monthlyTotals.firstWhere(
+            (e) => e.date.year == dt.year && e.date.month == dt.month,
+        orElse: () => HabitEntry(
+          id: '',
+          user_email: user_email,
+          habitTitle: _selectedHabitTitle,
+          date: dt,
+          value: 0.0,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return match.value;
+    }).toList();
+
+    setState(() {
+      _monthlyLabels = labels;
+      _monthlyValues = values;
+    });
+  }
+
 
   // ---------------------------------------------------------------------------
   // DELETE HABITS
@@ -448,14 +501,13 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                       .firstWhere((h) => h.title == _selectedHabitTitle)
                       .goal,
             ),
-
             const SizedBox(height: 24),
-            Text('Monthly Totals', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            ..._monthlyTotals.map(
-              (e) => Text(
-                '${DateFormat('MMMM yyyy').format(e.date)}: ${e.value.toStringAsFixed(1)}',
-              ),
+            Text('Monthly Totals (Last 12 months)',
+                style: theme.textTheme.titleLarge),
+            const SizedBox(height: 12),
+            MonthlyBarChart(
+              labels: _monthlyLabels,
+              values: _monthlyValues,
             ),
           ],
         ),

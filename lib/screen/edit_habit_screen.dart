@@ -174,7 +174,7 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
                 labelText: 'Current Value',
                 suffixText: _unitCtrl.text,
                 errorText: _isValueExceeding
-                    ? 'Exceeds goal of ${_goalCtrl.text}kg'
+                    ? 'Exceeds goal of ${_goalCtrl.text}${_unitCtrl.text}'
                     : null,
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
