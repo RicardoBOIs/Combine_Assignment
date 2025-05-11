@@ -429,8 +429,20 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
             quickAdds: const [],
           ),
         );
+
       });
     }
+
+    final newHabit = Habit(
+             title : titleCtrl.text.trim(),
+        unit  : unitCtrl.text.trim(),
+         goal  : double.tryParse(goalCtrl.text) ?? 0,
+         currentValue: 0,
+         quickAdds   : const [],
+    );
+    await _repo.upsertHabit(newHabit, user_email);
+    setState(() => _habits.add(newHabit));
+    await _loadAllData();
   }
 
   Future<void> _clearAll() async {
