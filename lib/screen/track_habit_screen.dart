@@ -29,7 +29,7 @@ class TrackHabitScreen extends StatefulWidget {
 class _TrackHabitScreenState extends State<TrackHabitScreen> {
   String user_email = 'alice@example.com';   //sample user email
   final HabitsRepository _repo = SqfliteHabitsRepository();
-  late List<Habit> _habits;
+  late List<Habit> _habits=[];
 
   DateTime _selectedDate = DateTime.now();
   String _selectedHabitTitle = '-';
