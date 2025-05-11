@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:assignment_test/';
+import 'package:assignment_test/YenHan/tip_repository.dart';
 
 
 import 'tips_education.dart';

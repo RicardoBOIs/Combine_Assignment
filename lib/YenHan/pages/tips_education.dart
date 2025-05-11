@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:combined/YenHan/firestore_service.dart';
+import 'package:assignment_test/YenHan/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:combined/YenHan/tip_repository.dart';
+import 'package:assignment_test/YenHan/tip_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:combined/YenHan/Databases/CarbonFootPrintDao.dart';
+import '../../screen/home.dart';
+import 'package:assignment_test/YenHan/Databases/CarbonFootPrintDao.dart';
+import '../../screen/track_habit_screen.dart';
 
 String _selectedRegion = 'MY';
 
@@ -133,9 +135,34 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
   int _selectedIndex = 3;
 
   void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex == index) return; // Don't navigate if we're already on this page
+
+    Widget nextPage;
+    switch (index) {
+      case 0:
+        nextPage = const HomePage();
+        break;
+      case 1:
+        nextPage = const TrackHabitScreen();
+        break;
+      case 2:
+        nextPage = const TrackHabitScreen();
+        break;
+      case 3:
+        nextPage = TipsEducationScreen();
+        break;
+      case 4:
+        nextPage = const TrackHabitScreen();
+        break;
+      default:
+        nextPage = const HomePage();
+    }
+
+    // Use Navigator to push to the new page
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => nextPage),
+    );
   }
 
 
@@ -244,6 +271,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

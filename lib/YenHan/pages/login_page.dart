@@ -1,11 +1,12 @@
+import 'package:assignment_test/YenHan/pages/tips_education.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:combined/YenHan/auth_service.dart';
-import 'package:combined/YenHan/widgets/fancy_button.dart';
-import 'package:combined/YenHan/pages/register_page.dart';
-import 'package:combined/YenHan/pages/reset_page.dart';
-import 'package:combined/YenHan/Databases//UserDao.dart';
+import 'package:assignment_test/YenHan/auth_service.dart';
+import 'package:assignment_test/YenHan/widgets/fancy_button.dart';
+import 'package:assignment_test/YenHan/pages/register_page.dart';
+import 'package:assignment_test/YenHan/pages/reset_page.dart';
+import 'package:assignment_test/YenHan/Databases//UserDao.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 
@@ -219,7 +220,10 @@ class _LoginPageState extends State<LoginPage> {
                           location: data['location'] ?? '',
                         );
 
-                        Navigator.pushReplacementNamed(context, route);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => TipsEducationScreen()),
+                        );
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
