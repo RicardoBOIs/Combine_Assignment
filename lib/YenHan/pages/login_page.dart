@@ -45,9 +45,7 @@ class _LoginPageState extends State<LoginPage> {
 
       /* 2️⃣  check Firestore: EcoLife/users/profiles/{email} */
       final snap = await FirebaseFirestore.instance
-          .collection('EcoLife')
-          .doc('users')
-          .collection('profiles')
+          .collection('Registered_users')
           .doc(email)
           .get();
 
@@ -63,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
         return;                               // stop here
       }
 
-      /* 3️  profile exists → now perform Firebase Auth sign-in */
+      /*  profile exists → now perform Firebase Auth sign-in */
       final googleAuth = await googleUser.authentication;
       final authCred = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
@@ -131,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 8),
                   const Center(
                     child: Text(
-                      "EcoLife",
+                      "GreenHabit",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -207,9 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                         final route = adminEmails.contains(email) ? '/admin' : '/home';
 
                         final snap = await FirebaseFirestore.instance
-                            .collection('EcoLife')
-                            .doc('users')
-                            .collection('profiles')
+                            .collection('Registered_users')
                             .doc(_mail.text.trim())
                             .get();
 

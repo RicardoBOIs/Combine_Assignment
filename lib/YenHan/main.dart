@@ -25,7 +25,7 @@ class EcoApp extends StatelessWidget {
       ),
       // 👇 具名路由（named routes）
       routes: {
-        '/':      (_) => const LoginPage(),      // 默认显示登录
+        '/':      (_) => const LoginPage(),
         '/home':  (_) =>  TipsEducationScreen(),  // 登录成功后跳这里
         '/admin': (_) => AdminDashboardScreen()
       },

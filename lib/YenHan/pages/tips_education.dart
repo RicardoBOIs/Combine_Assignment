@@ -35,18 +35,11 @@ final Map<String, Map<String, double>> _emissionFactors = {
   'MY': {
     'vehicle': 0.18,
     'electricity': 0.55,
-    'meat': 6.9,
-    'vegetable': 2.0,
+    'meat': 4.5,
+    'public': 0.05,
+    'vegetable': 0.5,
     'water': 0.0003,
     'waste': 0.45,
-  },
-  'GLOBAL': {
-    'vehicle': 0.21,
-    'electricity': 0.42,
-    'meat': 7.2,
-    'vegetable': 2.5,
-    'water': 0.00025,
-    'waste': 0.5,
   },
 };
 
@@ -82,17 +75,35 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
   double? _carbonFootprint;
 
   void _calculateCarbonFootprint() {
-    final vehicleKm = double.tryParse(_vehicleKmCtrl.text) ?? 0;
-    final publicKm = double.tryParse(_publicKmCtrl.text) ?? 0;
-    final electricity = double.tryParse(_energyController.text) ?? 0;
-    final meatKg = double.tryParse(_meatKgCtrl.text) ?? 0;
-    final vegKg = double.tryParse(_vegKgCtrl.text) ?? 0;
-    final waterL = double.tryParse(_waterLCtrl.text) ?? 0;
-    final wasteKg = double.tryParse(_wasteKgCtrl.text) ?? 0;
+
+    double safeParseNonNegative(String text, String fieldName) {
+      final value = double.tryParse(text) ?? 0;
+      if (value < 0) {
+        // Show warning for negative values
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Warning: Negative value entered for $fieldName. Using 0 instead.'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return 0;
+      }
+      return value;
+    }
+
+    final vehicleKm = safeParseNonNegative(_vehicleKmCtrl.text, "Car Driven");
+    final publicKm = safeParseNonNegative(_publicKmCtrl.text,"Public Transport");
+    final electricity = safeParseNonNegative(_energyController.text, "Electricity Usage");
+    final meatKg = safeParseNonNegative(_meatKgCtrl.text,"Meat Consumed");
+    final vegKg = safeParseNonNegative(_vegKgCtrl.text,"Vegetables Consumed");
+    final waterL = safeParseNonNegative(_waterLCtrl.text,"Tap Water Used");
+    final wasteKg = safeParseNonNegative(_wasteKgCtrl.text,"Waste Generated");
 
     final f = _emissionFactors[_selectedRegion]!;
 
-    final transport = vehicleKm * f['vehicle']! + publicKm * 0.105;
+    final transport = vehicleKm * f['vehicle']! + publicKm * f['public']!;
     final power = electricity * f['electricity']!;
     final diet = meatKg * f['meat']! + vegKg * f['vegetable']!;
     final water = waterL * f['water']!;
@@ -105,6 +116,20 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
     });
   }
 
+  void _resetCalculator() {
+    setState(() {
+
+      _vehicleKmCtrl.text = "";
+      _publicKmCtrl.text = "";
+      _energyController.text = "";
+      _meatKgCtrl.text = "";
+      _vegKgCtrl.text = "";
+      _waterLCtrl.text = "";
+      _wasteKgCtrl.text = "";
+      _carbonFootprint = null;
+    });
+  }
+
   int _selectedIndex = 3;
 
   void _onNavItemTapped(int index) {
@@ -112,6 +137,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
       _selectedIndex = index;
     });
   }
+
 
   void _showTipDetail(Tip tip) {
     showDialog(
@@ -230,18 +256,13 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
               fontWeight: FontWeight.bold,
             )
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.green.shade700),
-            onPressed: _shuffleTips,
-            tooltip: 'Refresh tips',
-          ),
-        ],
+
       ),
       body: RefreshIndicator(
-        onRefresh: () async => _shuffleTips(),
+        onRefresh: () async{
+          _shuffleTips();
+          _resetCalculator();
+        },
         color: Colors.green.shade700,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -335,40 +356,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    /* Region Selection */
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.public, color: Colors.green.shade700, size: 20),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Region:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          DropdownButton<String>(
-                            value: _selectedRegion,
-                            onChanged: (v) => setState(() => _selectedRegion = v!),
-                            items: _emissionFactors.keys
-                                .map((k) => DropdownMenuItem(value: k, child: Text(k)))
-                                .toList(),
-                            underline: const SizedBox(),
-                            icon: Icon(Icons.arrow_drop_down, color: Colors.green.shade700),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+
 
                     /* Transport Section */
                     Container(

@@ -27,13 +27,12 @@ class FirestoreService {
 
 
     await _db
-        .collection('EcoLife')
-        .doc('footprints')
-        .collection('daily')
-        .doc(email)                 // user-level document
-        .collection('days')         // sub-collection
+        .collection('daily_Carbon_FootPrint_record')
+        .doc(email)
+        .collection('days')
         .doc(dateId)
         .set(footprint, SetOptions(merge: true));
+
   }
 
   // Update and Save user profile
@@ -46,9 +45,7 @@ class FirestoreService {
     if (user == null) throw Exception('Not logged in');
 
     await _db
-        .collection('EcoLife')
-        .doc('users')
-        .collection('profiles')
+        .collection('Registered_users')
         .doc(user.email)
         .set({
       'email': user.email,

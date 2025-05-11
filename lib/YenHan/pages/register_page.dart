@@ -26,6 +26,25 @@ class _RegisterPageState extends State<RegisterPage> {
   final _location  = TextEditingController();
 
   bool _loading = false;
+  String? _selectedState;
+
+  final List<String> _states = [
+    'Selangor',
+    'Penang',
+    'Johor',
+    'Kuala Lumpur',
+    'Perak',
+    'Sabah',
+    'Sarawak',
+    'Negeri Sembilan',
+    'Melaka',
+    'Kelantan',
+    'Terengganu',
+    'Pahang',
+    'Perlis',
+    'Putrajaya',
+    'Labuan',
+  ];
 
   @override
   void initState() {
@@ -49,7 +68,8 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const FlutterLogo(size: 88),
+              Image.asset( 'assets/images/Logo_EcoLife.png',height: 100,
+                width: 100,),
               const SizedBox(height: 24),
 
               /* ─── Username ───────────────────────────── */
@@ -105,14 +125,33 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 12),
 
               /* ─── Location ──────────────────────────── */
+              DropdownButtonFormField<String>(
+                value: _selectedState,
+                decoration: const InputDecoration(
+                  labelText: 'State',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                items: _states.map((state) {
+                  return DropdownMenuItem(
+                    value: state,
+                    child: Text(state),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedState = value);
+                },
+                validator: (v) => v == null || v.isEmpty ? 'Please select a state' : null,
+              ),
+              const SizedBox(height: 12),
+
               TextFormField(
                 controller: _location,
                 decoration: const InputDecoration(
-                  labelText: 'City / State',
-                  prefixIcon: Icon(Icons.location_city),
+                  labelText: 'Address (e.g., Taman Desa, Jalan ABC)',
+                  prefixIcon: Icon(Icons.home),
                 ),
                 validator: (v) =>
-                v!.trim().isEmpty ? 'Please enter a location' : null,
+                v!.trim().isEmpty ? 'Please enter your address' : null,
               ),
               const SizedBox(height: 24),
 
@@ -152,7 +191,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     await FirestoreService().saveUserProfile(
                       username: _username.text,
                       phone: _phone.text,
-                      location: _location.text,
+                      location:  '$_selectedState, ${_location.text}',
                     );
 
                     // also cache locally in SQLite
@@ -160,7 +199,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       email: _mail.text.trim(),
                       username: _username.text,
                       phone: _phone.text,
-                      location: _location.text,
+                      location:  '$_selectedState, ${_location.text}',
                     );
 
                     if (mounted) {
