@@ -1,14 +1,21 @@
-// community_challenges_screen.dart
-
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';          // RouteAware support
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'community_repository_service.dart';
 import 'community_main_model.dart';
 import 'join_event_model.dart';
 import 'community_leaderboard.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-/// Community Challenges List Page with search, filter, ordering, and RepositoryService sync
+
+/// Route observer (put once in this file; referenced from main.dart)
+final RouteObserver<ModalRoute<void>> routeObserver =
+RouteObserver<ModalRoute<void>>();
+
+/// Community Challenges List Page with search, filter, ordering,
+/// and RepositoryService sync.
 class CommunityChallengesScreen extends StatefulWidget {
   const CommunityChallengesScreen({Key? key}) : super(key: key);
 
@@ -17,45 +24,60 @@ class CommunityChallengesScreen extends StatefulWidget {
       _CommunityChallengesScreenState();
 }
 
-class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
+class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
+    with RouteAware {
   final _repo = RepositoryService.instance;
+
   late Future<List<CommunityMain>> _futureCommunities;
-  late final String currentEmail;         // non-nullable
-  late Future<void> _initialSync;
+  late final String currentEmail;
 
-
+  // ─── UI State ────────────────────────────────────────────────────────────
   String _searchTerm = '';
   String _selectedType = 'All';
   final List<String> _allEventTypes = [
-    'All',
-    'Workshop',
-    'Seminar',
-    'Meetup',
-    'Competition',
-    'Other'
+    'All', 'Workshop', 'Seminar', 'Meetup', 'Competition', 'Other'
   ];
 
+  // ─── PAGE LIFECYCLE ──────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    // Fail fast in debug if the page is opened without a user
     final user = FirebaseAuth.instance.currentUser;
     assert(user != null && user.email != null,
-    'CommunityMain must be opened after a successful login.');
+    'CommunityChallengesScreen must be opened after login.');
     currentEmail = user!.email!;
-    _initialSync = _repo.syncAllForUser(currentEmail);
-    _reloadAll();
+    _reloadAll();                               // initial load
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Called automatically when user navigates back to this screen.
+  @override
+  void didPopNext() => _reloadAll();
+
+  // ─── DATA HELPERS ────────────────────────────────────────────────────────
+  Future<List<CommunityMain>> _syncAndFetch() async {
+    await _repo.syncAllForUser(currentEmail);    // Cloud → SQLite
+    return _repo.getCommunities();               // freshest list
+  }
 
   void _reloadAll() {
     setState(() {
-      _futureCommunities = _repo.getCommunities();
+      _futureCommunities = _syncAndFetch();   // ← assignment only, no return
     });
   }
 
   Future<List<Object>> _joinInfo(int communityId) {
-    // returns [hasJoined, joinCount]
     return Future.wait([
       _repo
           .getJoinsForUser(currentEmail)
@@ -67,7 +89,9 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
     ]);
   }
 
-  void _showEventDetail(BuildContext ctx, CommunityMain cm, bool joined, int joinCount) {
+  // ─── NAVIGATION HELPERS ──────────────────────────────────────────────────
+  void _showEventDetail(BuildContext ctx, CommunityMain cm,
+      bool joined, int joinCount) {
     Navigator.push(
       ctx,
       MaterialPageRoute(
@@ -98,38 +122,38 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
     );
   }
 
-  Widget _buildImage(CommunityMain c) {
-    if (c.imagePath != null && File(c.imagePath!).existsSync()) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(File(c.imagePath!), fit: BoxFit.cover),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset('assets/images/default.jpg', fit: BoxFit.cover),
-    );
-  }
-
+  // ─── BUILD ───────────────────────────────────────────────────────────────
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initialSync,                     // wait for Firestore → SQLite sync
-      builder: (_, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          // still syncing – show a spinner
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        // sync finished – build the normal UI
-        return _buildScaffold(context);
-      },
-    );
-  }
+  Widget build(BuildContext context) => FutureBuilder<List<CommunityMain>>(
+    future: _futureCommunities,
+    builder: (ctx, snap) {
+      if (snap.connectionState == ConnectionState.waiting) {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+      if (snap.hasError) {
+        return Scaffold(
+          body: Center(child: Text('Error: ${snap.error}')),
+        );
+      }
+      return _buildScaffold(ctx, snap.data ?? []);
+    },
+  );
 
-  Widget _buildScaffold(BuildContext context) {
+  Widget _buildScaffold(BuildContext context, List<CommunityMain> commsRaw) {
     final now = DateTime.now();
+
+    // ── search / filter in memory ──
+    var comms = commsRaw.where((c) {
+      final term = _searchTerm.toLowerCase();
+      final matchTitle = c.title.toLowerCase().contains(term);
+      final matchDesc  = c.shortDescription.toLowerCase().contains(term);
+      final matchType  =
+          _selectedType == 'All' || c.typeOfEvent == _selectedType;
+      return (matchTitle || matchDesc) && matchType;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Community Challenges',
@@ -138,85 +162,64 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: FutureBuilder<List<CommunityMain>>(
-          future: _futureCommunities,
-          builder: (ctx, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snap.hasError) {
-              return Center(child: Text('Error: ${snap.error}'));
-            }
-            var comms = snap.data ?? [];
-
-            // Search & filter
-            comms = comms.where((c) {
-              final term = _searchTerm.toLowerCase();
-              final byTitle = c.title.toLowerCase().contains(term);
-              final byDesc =
-              c.shortDescription.toLowerCase().contains(term);
-              final byType =
-                  _selectedType == 'All' || c.typeOfEvent == _selectedType;
-              return (byTitle || byDesc) && byType;
-            }).toList();
-
-            return Column(
-              children: [
-                // Search bar
-                TextField(
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search events…',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (t) => setState(() => _searchTerm = t),
+      body: RefreshIndicator(
+        onRefresh: () async => _reloadAll(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              // Search bar
+              TextField(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search events…',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 8),
-                // Type filter chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _allEventTypes.map((type) {
-                      final selected = type == _selectedType;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(type),
-                          selected: selected,
-                          selectedColor: Colors.green.shade300,
-                          onSelected: (_) =>
-                              setState(() => _selectedType = type),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                onChanged: (t) => setState(() => _searchTerm = t),
+              ),
+              const SizedBox(height: 8),
+              // Type filter chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _allEventTypes.map((type) {
+                    final selected = type == _selectedType;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(type),
+                        selected: selected,
+                        selectedColor: Colors.green.shade300,
+                        onSelected: (_) => setState(() => _selectedType = type),
+                      ),
+                    );
+                  }).toList(),
                 ),
-                const SizedBox(height: 12),
-                // Build list with join info
-                FutureBuilder<List<List<Object>>>(
-                  future:
-                  Future.wait(comms.map((c) => _joinInfo(c.id!))),
+              ),
+              const SizedBox(height: 12),
+
+              // Build list with join info
+              Expanded(
+                child: FutureBuilder<List<List<Object>>>(
+                  future: Future.wait(comms.map((c) => _joinInfo(c.id!))),
                   builder: (ctx2, infoSnap) {
                     if (infoSnap.connectionState == ConnectionState.waiting) {
-                      return const Expanded(
-                          child: Center(child: CircularProgressIndicator()));
+                      return const Center(child: CircularProgressIndicator());
                     }
                     if (infoSnap.hasError) {
-                      return Expanded(
-                          child:
-                          Center(child: Text('Error: ${infoSnap.error}')));
+                      return Center(
+                          child: Text('Error: ${infoSnap.error}'));
                     }
                     final infos = infoSnap.data!;
+                    // merge meta info for sort & display
                     final items = <Map<String, dynamic>>[];
                     for (var i = 0; i < comms.length; i++) {
                       final c = comms[i];
                       final hasJoined = infos[i][0] as bool;
-                      final count = infos[i][1] as int;
-                      final expired = c.endDate.isBefore(now);
-                      final full = count >= c.capacity;
-                      final status = expired ? 2 : (full ? 1 : 0);
+                      final count     = infos[i][1] as int;
+                      final expired   = c.endDate.isBefore(now);
+                      final full      = count >= c.capacity;
+                      final status    = expired ? 2 : (full ? 1 : 0); // 0 avail
                       items.add({
                         'community': c,
                         'joined': hasJoined,
@@ -228,65 +231,60 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
                     items.sort((a, b) =>
                         (a['status'] as int).compareTo(b['status'] as int));
 
-                    return Expanded(
-                      child: items.isEmpty
-                          ? const Center(child: Text('No events'))
-                          : ListView.separated(
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(height: 16),
-                        itemBuilder: (ctx3, idx) {
-                          final e = items[idx];
-                          final cm = e['community'] as CommunityMain;
-                          final joined = e['joined'] as bool;
-                          final count = e['joinCount'] as int;
-                          final expired = e['status'] == 2;
-                          final full = e['status'] == 1;
+                    if (items.isEmpty) {
+                      return const Center(child: Text('No events'));
+                    }
+                    return ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) =>
+                      const SizedBox(height: 16),
+                      itemBuilder: (ctx3, idx) {
+                        final e   = items[idx];
+                        final cm  = e['community'] as CommunityMain;
+                        final joined    = e['joined'] as bool;
+                        final count     = e['joinCount'] as int;
+                        final expired   = e['status'] == 2;
+                        final full      = e['status'] == 1;
 
-                          String label;
-                          VoidCallback? action;
+                        String label;
+                        VoidCallback? action;
+                        if (expired) {
+                          label  = 'Expired'; action = null;
+                        } else if (full) {
+                          label  = 'Full';    action = null;
+                        } else if (joined) {
+                          label  = 'View Details';
+                          action = () => _showEventDetail(
+                              context, cm, joined, count);
+                        } else {
+                          label  = 'Join';
+                          action = () => _showEventDetail(
+                              context, cm, joined, count);
+                        }
 
-                          if (expired) {
-                            // event already ended – show “Expired” no matter what
-                            label  = 'Expired';
-                            action = null;                // disabled
-                          } else if (full) {
-                            label  = 'Full';
-                            action = null;
-                          } else if (joined) {
-                            label  = 'View Details';
-                            action = () => _showEventDetail(context, cm, joined, count);
-                          } else {
-                            label  = 'Join';
-                            action = () => _showEventDetail(context, cm, joined, count);
-                          }
-
-                          return _ChallengeCard(
-                            title: cm.title,
-                            description: cm.shortDescription,
-                            startDate:
-                            'Starts: ${DateFormat.MMMd().format(cm.startDate)}',
-                            imageWidget: _buildImage(cm),
-                            primaryButtonLabel: label,
-                            primaryOnPressed: action,
-                            leaderboardButtonLabel:
-                            cm.existLeaderboard == 'Yes'
-                                ? 'Leaderboard'
-                                : null,
-                            leaderboardOnPressed:
-                            cm.existLeaderboard == 'Yes'
-                                ? () => _showLeaderboard(context, cm)
-                                : null,
-                            joinCount: count,
-                          );
-                        },
-                      ),
+                        return _ChallengeCard(
+                          title: cm.title,
+                          description: cm.shortDescription,
+                          startDate: 'Starts: '
+                              '${DateFormat.MMMd().format(cm.startDate)}',
+                          imageWidget: _buildImage(cm),
+                          primaryButtonLabel: label,
+                          primaryOnPressed: action,
+                          leaderboardButtonLabel:
+                          cm.existLeaderboard == 'Yes' ? 'Leaderboard' : null,
+                          leaderboardOnPressed:
+                          cm.existLeaderboard == 'Yes'
+                              ? () => _showLeaderboard(context, cm)
+                              : null,
+                          joinCount: count,
+                        );
+                      },
                     );
                   },
                 ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -294,19 +292,28 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen> {
         selectedItemColor: Colors.deepPurple,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart), label: 'Habits'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.people), label: 'Community'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.lightbulb_outline), label: 'Tips'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Habits'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Community'),
+          BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Tips'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
         onTap: (_) {},
       ),
+    );
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+  Widget _buildImage(CommunityMain c) {
+    if (c.imagePath != null && File(c.imagePath!).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(File(c.imagePath!), fit: BoxFit.cover),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.asset('assets/images/default.jpg', fit: BoxFit.cover),
     );
   }
 }
