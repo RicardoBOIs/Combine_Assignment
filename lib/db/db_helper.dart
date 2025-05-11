@@ -13,24 +13,12 @@ class DbHelper {
 
   DbHelper._();
 
-  static const _dbName = 'habits.db';
+  static const _dbName = 'ecolife.db';
   static const _dbVersion = 8;
 
   Future<void> deleteAllEntries() async {
     final db = await database;
     await db.delete('entries');
-  }
-
-  Future<Database> openDb() async {
-    return openDatabase(
-      join(await getDatabasesPath(), 'steps.db'),
-      onCreate: (db, version) {
-        return db.execute(
-          'CREATE TABLE steps(id INTEGER PRIMARY KEY, value INTEGER, timestamp INTEGER)',
-        );
-      },
-      version: 1,
-    );
   }
 
   // Proper implementation for getting today's step count
