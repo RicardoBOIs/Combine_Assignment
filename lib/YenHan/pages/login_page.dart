@@ -237,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => TipsEducationScreen()),
+                          MaterialPageRoute(builder: (_) => const HomePage()),
                         );
                       } catch (e) {
                         if (mounted) {
