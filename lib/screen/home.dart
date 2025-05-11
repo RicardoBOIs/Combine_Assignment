@@ -16,6 +16,7 @@ import '../../screen/track_habit_screen.dart'; // For navigation to the dedicate
 
 // Assuming you have this page for check-ins based on previous context
 import '../screen/check_in_page.dart';
+import 'package:assignment_test/YenHan/pages/tips_education.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -529,6 +530,11 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
+            );
+          }else if (index==3){
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
             );
           }
           // You can add more conditions for other tabs here

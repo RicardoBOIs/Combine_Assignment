@@ -8,6 +8,8 @@ import 'package:assignment_test/YenHan/pages/register_page.dart';
 import 'package:assignment_test/YenHan/pages/reset_page.dart';
 import 'package:assignment_test/YenHan/Databases//UserDao.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:assignment_test/YenHan/pages/admin_dashboard.dart';
+import 'package:assignment_test/screen/home.dart';
 
 
 const adminEmails = ['admin@example.com', 'johnleeyenhan@gmail.com'];
@@ -82,8 +84,21 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       /* 5️⃣  route: admin or home */
-      final route = adminEmails.contains(email) ? '/admin' : '/home';
-      if (mounted) Navigator.pushReplacementNamed(context, route);
+      /* 5️⃣  route: admin or home */
+      if (!mounted) return;
+
+      if (adminEmails.contains(email)) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage()),
+        );
+      }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   Center(
                     child: Image.asset(
-                      'assets/images/Logo_EcoLife.png',
+                      'assets/Logo_EcoLife.png',
                       height: 100,
                       width: 100,
                     ),
@@ -203,7 +218,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         if (!mounted) return;
                         final email = _mail.text.trim();
-                        final route = adminEmails.contains(email) ? '/admin' : '/home';
+
 
                         final snap = await FirebaseFirestore.instance
                             .collection('Registered_users')
@@ -250,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
                       : ElevatedButton.icon(
                     onPressed: _loginWithGoogle,
                     icon: Image.asset(
-                      'assets/images/google_icon.png',
+                      'assets/google_icon.png',
                       height: 24.0,
                       width: 24.0,
                     ),

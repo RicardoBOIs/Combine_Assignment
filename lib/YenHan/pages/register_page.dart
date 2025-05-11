@@ -69,7 +69,7 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Image.asset( 'assets/images/Logo_EcoLife.png',height: 100,
+              Image.asset( 'assets/Logo_EcoLife.png',height: 100,
                 width: 100,),
               const SizedBox(height: 24),
 
