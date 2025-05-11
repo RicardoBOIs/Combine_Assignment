@@ -1,4 +1,5 @@
 import '../attr/habit_entry.dart';
+import '../attr/habit.dart';
 
 abstract class HabitsRepository {
   Future<void> upsertEntry(HabitEntry entry);
@@ -9,4 +10,6 @@ abstract class HabitsRepository {
   Future<List<HabitEntry>> fetchRange(String user_email, String habitTitle, DateTime pivotDate);
   Future<void> deleteDay(String habitTitle, DateTime date);
   Future<void> deleteAllEntriesForHabit(String habitTitle);
+  Future<void> upsertHabit(Habit habit, String userEmail);
+  Future<List<Habit>> fetchHabits(String userEmail);
 }

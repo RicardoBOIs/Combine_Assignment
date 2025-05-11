@@ -3,6 +3,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
 import '../attr/habit_entry.dart';
+import '../attr/habit.dart';
+import 'dart:convert';
 
 class DbHelper {
   static final DbHelper _instance = DbHelper._();
@@ -112,7 +114,6 @@ class DbHelper {
     );
   }
 
-
   /// Inspect existing table and migrate only if 'date' is not TEXT.
   Future<void> _onConfigure(Database db) async {
     final info = await db.rawQuery("PRAGMA table_info('entries')");
@@ -163,6 +164,22 @@ class DbHelper {
       FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
     )
   ''');
+
+    await db.execute('''
+    CREATE TABLE habits (
+      user_email   TEXT    NOT NULL,
+      title        TEXT    NOT NULL,
+      unit         TEXT,
+      goal         REAL,
+      currentValue REAL,
+      quickAdds    TEXT,      -- JSON‐encoded list of doubles
+      usePedometer INTEGER,   -- 0 or 1
+      createdAt    TEXT,
+      updatedAt    TEXT,
+      PRIMARY KEY(title),
+      FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
+     );
+   ''');
 
     // Add a unique index on the day column
     await db.execute('''
@@ -464,4 +481,63 @@ class DbHelper {
     );
   }
 
+  Future<void> upsertHabit(Habit habit, String user_email) async {
+    final db = await database;
+    final exists = (await db.query(
+      'habits',
+      where: 'user_email = ? AND title = ?',
+      whereArgs: [user_email, habit.title],
+    )).isNotEmpty;
+
+    final nowIso = DateTime.now().toIso8601String();
+    if (exists) {
+      // only update the fields that changed
+      await db.update(
+        'habits',
+        {
+          'goal'       : habit.goal,
+          'unit'       : habit.unit,
+          'usePedometer': habit.usePedometer ? 1 : 0,
+          'quickAdds'  : jsonEncode(habit.quickAdds),
+          'updatedAt'  : nowIso,
+        },
+        where: 'user_email = ? AND title = ?',
+        whereArgs: [user_email, habit.title],
+      );
+    } else {
+      // first time insert
+      await db.insert(
+        'habits',
+        {
+          'user_email'   : user_email,
+          'title'        : habit.title,
+          'unit'         : habit.unit,
+          'goal'         : habit.goal,
+          'currentValue' : habit.currentValue,
+          'quickAdds'    : jsonEncode(habit.quickAdds),
+          'usePedometer' : habit.usePedometer ? 1 : 0,
+          'createdAt'    : nowIso,
+          'updatedAt'    : nowIso,
+        },
+      );
+    }
+  }
+
+  Future<List<Habit>> fetchHabits(String user_email) async {
+    final db   = await database;
+    final rows = await db.query('habits',
+      where: 'user_email = ?', whereArgs: [user_email],
+    );
+    return rows.map((r) {
+      return Habit(
+        title       : r['title']        as String,
+        unit        : r['unit']         as String,
+        goal        : (r['goal']        as num).toDouble(),
+        currentValue: (r['currentValue']as num).toDouble(),
+        quickAdds   : (jsonDecode(r['quickAdds'] as String) as List)
+            .map((e) => (e as num).toDouble()).toList(),
+        usePedometer: (r['usePedometer'] as int) == 1,
+      );
+    }).toList();
+  }
 }

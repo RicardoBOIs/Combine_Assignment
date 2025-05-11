@@ -48,31 +48,30 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   void initState() {
     super.initState();
 
-    _habits = [
-      Habit(
-        title: 'Reduce Plastic',
-        unit: 'kg',
-        goal: 10,
-        currentValue: 0,
-        quickAdds: const [],
-      ),
-      Habit(
-        title: 'Short Walk',
-        unit: 'steps',
-        goal: 10000,
-        currentValue: 0,
-        quickAdds: const [],
-        usePedometer: true,
-      ),
-    ];
-    _selectedHabitTitle = _habits.first.title;
-
-    SyncService().start();
-    _initSavedTotal().then((_) {
+    Future<void> _initHabits() async {
+      final saved = await _repo.fetchHabits(user_email);
+      if (saved.isEmpty) {
+        // first run: seed defaults and persist them
+        _habits = [
+          Habit(title: 'Reduce Plastic', unit: 'kg', goal: 10, currentValue: 0, quickAdds: []),
+          Habit(title: 'Short Walk',    unit: 'steps', goal: 10000, currentValue: 0, quickAdds: [], usePedometer: true),
+        ];
+        for (var h in _habits) {
+          await _repo.upsertHabit(h, user_email);
+        }
+      } else {
+        _habits = saved;
+      }
+      setState(() => _selectedHabitTitle = _habits.first.title);
+      // now continue with your existing sync, permission and data-loading calls…
+      SyncService().start();
+      await _initSavedTotal();
       _requestPermission();
       _startPedometer();
-    });
-    _loadAllData();
+      await _loadAllData();
+    }
+
+    _initHabits();
   }
 
   @override
@@ -533,6 +532,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                               await _repo.deleteDay(entry.habitTitle, entry.date);
                               await _repo.upsertEntry(entry);
                             }
+                            await _repo.upsertHabit(updated, user_email);
                             setState(() => _habits[index] = updated);
                             await _loadAllData();
                           }

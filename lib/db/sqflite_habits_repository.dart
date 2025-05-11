@@ -2,7 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'habits_repository.dart';
 import 'db_helper.dart';
 import '../attr/habit_entry.dart';
-import 'sync_service.dart';
+import '../attr/habit.dart';
 
 class SqfliteHabitsRepository implements HabitsRepository {
   final DbHelper _db = DbHelper();
@@ -56,4 +56,12 @@ class SqfliteHabitsRepository implements HabitsRepository {
   @override
   Future<void> deleteAllEntriesForHabit(String habitTitle) =>
       _db.deleteAllEntriesForHabit(habitTitle);
+
+  @override
+  Future<void> upsertHabit(Habit habit, String userEmail) =>
+      _db.upsertHabit(habit, userEmail);
+
+  @override
+  Future<List<Habit>> fetchHabits(String userEmail) =>
+      _db.fetchHabits(userEmail);
 }

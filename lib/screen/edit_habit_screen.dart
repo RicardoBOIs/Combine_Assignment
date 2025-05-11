@@ -30,6 +30,9 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
   late double _currentValue;
   late DateTime _entryDate;
 
+  bool _isGoalNonPositive = false;
+  bool _isValueExceeding = false;
+
   @override
   void initState() {
     super.initState();
@@ -116,7 +119,9 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
           IconButton(
             icon: const Icon(Icons.save),
             tooltip: 'Save',
-            onPressed: _save,
+            onPressed: (_isValueExceeding || _isGoalNonPositive)
+                ? null
+                : _save,
           ),
         ],
       ),
@@ -127,6 +132,8 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
             TextField(
               controller: _titleCtrl,
               decoration: const InputDecoration(labelText: 'Habit Title'),
+              readOnly: true,
+              showCursor: false,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -134,35 +141,54 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
               decoration: const InputDecoration(labelText: 'Unit (e.g. kg)'),
             ),
             const SizedBox(height: 12),
-            // TextField(
-            //   controller: _goalCtrl,
-            //   decoration: const InputDecoration(labelText: 'Goal'),
-            //   keyboardType: const TextInputType.numberWithOptions(
-            //     decimal: true,
-            //   ),
-            //   onChanged: (v) {
-            //     final g = double.tryParse(v) ?? widget.habit.goal;
-            //     setState(() {
-            //       if (_currentValue > g) {
-            //         _currentValue = g;
-            //         _currentValueCtrl.text = g.toStringAsFixed(1);
-            //       }
-            //     });
-            //   },
-            // ),
-            // const SizedBox(height: 12),
+            TextField(
+              controller: _goalCtrl,
+              decoration: InputDecoration(
+                labelText: 'Goal',
+                errorText: _isGoalNonPositive
+                    ? 'Goal must be more than 0'
+                    : null,
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (v) {
+                final parsedGoal = double.tryParse(v) ?? 0.0;
+                setState(() {
+                  // Non‐positive?
+                  if (parsedGoal <= 0) {
+                    _isGoalNonPositive = true;
+                  }
+                  // Valid new goal
+                  else {
+                    _isGoalNonPositive = false;
+                    widget.habit.goal  = parsedGoal;
+                  }
+                  // any time goal changes we clear the “value exceeding” error
+                  _isValueExceeding = false;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _currentValueCtrl,
               decoration: InputDecoration(
                 labelText: 'Current Value',
                 suffixText: _unitCtrl.text,
+                errorText: _isValueExceeding
+                    ? 'Exceeds goal of ${_goalCtrl.text}kg'
+                    : null,
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (v) {
+                final parsed = double.tryParse(v) ?? 0.0;
+                final goal   = double.tryParse(_goalCtrl.text) ?? widget.habit.goal;
                 setState(() {
-                  _currentValue = double.tryParse(v) ?? _currentValue;
+                  if (parsed > goal) {
+                    // mark invalid but do not assign to _currentValue
+                    _isValueExceeding = true;
+                  } else {
+                    _isValueExceeding = false;
+                    _currentValue     = parsed;
+                  }
                 });
               },
             ),
@@ -185,17 +211,16 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
               children: [
                 const Text('Adjust with slider:'),
                 Expanded(
-                  child: Slider(
-                    value: _currentValue,
+                  child:
+                  Slider(
+                    value: _currentValue.clamp(0.0, widget.habit.goal),
                     min: 0,
-                    max: double.tryParse(_goalCtrl.text) ?? widget.habit.goal,
-                    divisions:
-                        ((double.tryParse(_goalCtrl.text) ??
-                                    widget.habit.goal) *
-                                10)
-                            .toInt(),
+                    max: widget.habit.goal,
+                    divisions: (widget.habit.goal * 10).toInt().clamp(1, 1000),
                     label: _currentValue.toStringAsFixed(1),
-                    onChanged: (v) {
+                    onChanged: (_isValueExceeding || _isGoalNonPositive)
+                        ? null
+                        : (v) {
                       setState(() {
                         _currentValue = v;
                         _currentValueCtrl.text = v.toStringAsFixed(1);
