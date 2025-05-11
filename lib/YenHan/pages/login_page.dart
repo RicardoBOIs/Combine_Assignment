@@ -111,7 +111,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
 
-
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Container(
@@ -235,9 +234,13 @@ class _LoginPageState extends State<LoginPage> {
                           location: data['location'] ?? '',
                         );
 
+                        final Widget nextPage = adminEmails.contains(email)
+                            ? const AdminDashboardScreen()
+                            : const HomePage();
+
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const HomePage()),
+                          MaterialPageRoute(builder: (_) => nextPage),
                         );
                       } catch (e) {
                         if (mounted) {

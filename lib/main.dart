@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       ),
       // Assign the global navigatorKey to the MaterialApp
       navigatorKey: navigatorKey, // <--- ADD THIS LINE
-      home: const HomePage(),
+      home: const LoginPage(),
     );
   }
 }
