@@ -222,7 +222,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         final snap = await FirebaseFirestore.instance
                             .collection('Registered_users')
-                            .doc(_mail.text.trim())
+                            .doc(email)
                             .get();
 
                         // Use empty string if not data from firestore
