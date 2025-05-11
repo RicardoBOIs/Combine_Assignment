@@ -347,11 +347,9 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _deleteHabitAndData(String title, int index) async {
-    // 3a. Remove all local entries for that habit:
     await DbHelper().deleteAllEntriesForHabit(title);
-    // 3b. Remove from Firestore:
     await SyncService().deleteEntriesForHabit(title);
-    // 3c. Update your in-memory list and refresh the charts:
+    await _repo.deleteHabit(user_email, title);
     setState(() {
       _habits.removeAt(index);
     });

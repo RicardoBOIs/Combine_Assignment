@@ -12,4 +12,5 @@ abstract class HabitsRepository {
   Future<void> deleteAllEntriesForHabit(String habitTitle);
   Future<void> upsertHabit(Habit habit, String userEmail);
   Future<List<Habit>> fetchHabits(String userEmail);
+  Future<void> deleteHabit(String userEmail, String title);
 }

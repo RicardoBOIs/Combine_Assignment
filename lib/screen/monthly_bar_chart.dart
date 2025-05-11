@@ -33,14 +33,14 @@ class MonthlyBarChart extends StatelessWidget {
                   final idx = value.toInt();
                   return Text(labels[idx], style: TextStyle(fontSize: 10));
                 },
-                interval: 1,
+                interval: 2,
                 reservedSize: 30,
               ),
             ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: false,
-                interval: maxY / 5, // or whatever interval you prefer
+                interval: 1, // or whatever interval you prefer
                 reservedSize: 30, // space to reserve on the left
               ),
             ),
