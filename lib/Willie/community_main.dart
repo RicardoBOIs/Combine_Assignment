@@ -9,7 +9,7 @@ import 'community_repository_service.dart';
 import 'community_main_model.dart';
 import 'join_event_model.dart';
 import 'community_leaderboard.dart';
-
+import 'community_joined_history.dart';   // ⬅️ new line
 /// Route observer (put once in this file; referenced from main.dart)
 final RouteObserver<ModalRoute<void>> routeObserver =
 RouteObserver<ModalRoute<void>>();
@@ -161,6 +161,20 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.checklist_rtl_outlined, color: Colors.green),
+            tooltip: 'My Events',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MyJoinedEventsScreen(email: currentEmail),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => _reloadAll(),
@@ -248,18 +262,19 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
 
                         String label;
                         VoidCallback? action;
-                        if (expired) {
-                          label  = 'Expired'; action = null;
-                        } else if (full) {
-                          label  = 'Full';    action = null;
-                        } else if (joined) {
+                        if (joined) {
+                          // Whoever is already in can ALWAYS see details / exit, no matter what.
                           label  = 'View Details';
-                          action = () => _showEventDetail(
-                              context, cm, joined, count);
+                          action = () => _showEventDetail(context, cm, joined, count);
+                        } else if (expired) {
+                          label  = 'Expired';
+                          action = null;
+                        } else if (full) {
+                          label  = 'Full';
+                          action = null;
                         } else {
                           label  = 'Join';
-                          action = () => _showEventDetail(
-                              context, cm, joined, count);
+                          action = () => _showEventDetail(context, cm, joined, count);
                         }
 
                         return _ChallengeCard(
