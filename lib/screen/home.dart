@@ -202,14 +202,6 @@ class _HomePageState extends State<HomePage> {
       final labels = last7.map((e) => DateFormat('yyyy-MM-dd').format(e.day)).toList();
       final values = last7.map((e) => e.count).toList();
 
-      // Removed monthly chart data fetching for step habits
-      // final stepMonths = await stepsRepo.fetchMonthlyTotals(_userEmail);
-      // _monthlyTotalsForCharts = stepMonths.map((e) => HabitEntry(
-      //   id: const Uuid().v4(), // Generate new UUID for this
-      //   user_email: e.user_email, habitTitle: habitTitle, date: e.day, value: e.count, createdAt: e.createdAt, updatedAt: e.updatedAt,
-      // )).toList();
-      // _prepareMonthlyChart(); // Removed call
-
       setState(() {
         _last7Labels = labels;
         _last7Values = values;
@@ -234,10 +226,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
       latestPerDay.forEach((k, e) => daily[k] = e.value);
-
-      // Removed monthly chart data fetching for non-step habits
-      // _monthlyTotalsForCharts = await _habitsRepo.fetchMonthlyTotals(_userEmail, habitTitle);
-      // _prepareMonthlyChart(); // Removed call
 
       // Assign labels and values for interactive trend chart
       final dailyLabels = daily.keys.toList();
@@ -408,20 +396,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Bar (Remains at the top)
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Search challenges...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-            ),
-            const SizedBox(height: 24.0),
+            // Removed Search Bar section as requested.
 
             // --- Daily Check-in Section (NEW FIRST ORDER) ---
             const Text(
@@ -555,7 +530,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 } else {
                   final joinedEvents = snapshot.data!;
-                  final fmt = DateFormat('MMM d, HH:mm'); // Date format for display
+                  final fmt = DateFormat('MMM d,yyyy').format; // Corrected format here
                   return ListView.separated(
                     shrinkWrap: true, // Important for ListView inside Column/SingleChildScrollView
                     physics: const NeverScrollableScrollPhysics(), // Disable ListView's own scrolling
@@ -574,7 +549,7 @@ class _HomePageState extends State<HomePage> {
                           leading: SizedBox(width: 60, height: 60, child: ClipRRect(borderRadius: BorderRadius.circular(8), child: img)),
                           title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(
-                            'Ends: ${fmt.format(event.endDate)}\n${event.shortDescription}',
+                            'Ends: ${fmt(event.endDate)}\n${event.shortDescription}', // Use fmt(event.endDate)
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
