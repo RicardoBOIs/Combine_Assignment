@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
 
 import '../attr/habit.dart';
 import '../attr/habit_entry.dart';
@@ -73,12 +74,13 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     );
 
     Future<void> _initHabits() async {
+      final _uuid = const Uuid();
       final saved = await _repo.fetchHabits(user_email);
       if (saved.isEmpty) {
         // first run: seed defaults and persist them
         _habits = [
-          Habit(title: 'Reduce Plastic', unit: 'kg', goal: 1, currentValue: 0, quickAdds: const []),
-          Habit(title: 'Short Walk',    unit: 'steps', goal: 10000, currentValue: 0, quickAdds: const [], usePedometer: true),
+          Habit(id: _uuid.v4(),title: 'Reduce Plastic', unit: 'kg', goal: 1, currentValue: 0, quickAdds: const []),
+          Habit(id: _uuid.v4(),title: 'Short Walk',    unit: 'steps', goal: 10000, currentValue: 0, quickAdds: const [], usePedometer: true),
         ];
         for (var h in _habits) {
           await _repo.upsertHabit(h, user_email);
@@ -221,6 +223,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     final isStep = _habits.firstWhere(
           (h) => h.title == habitTitle,
       orElse: () => Habit(
+        id: '',
         title: '',
         unit: '',
         goal: 0,
@@ -424,6 +427,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     // ── If user confirmed and title is not empty ──────────────────────────────
     if (added == true && titleCtrl.text.trim().isNotEmpty) {
       final newHabit = Habit(
+        id        : const Uuid().v4(),
         title       : titleCtrl.text.trim(),
         unit        : unitCtrl.text.trim(),
         goal        : double.tryParse(goalCtrl.text) ?? 0,

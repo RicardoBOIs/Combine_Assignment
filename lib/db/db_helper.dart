@@ -167,7 +167,8 @@ class DbHelper {
     await db.execute('''
     CREATE TABLE habits (
       user_email   TEXT    NOT NULL,
-      title        TEXT    PRIMARY KEY,
+      id           TEXT    PRIMARY KEY,
+      title        TEXT    NOT NULL,
       unit         TEXT,
       goal         REAL,
       currentValue REAL,
@@ -326,8 +327,8 @@ class DbHelper {
       final month = int.parse(parts[1]);
 
       return HabitEntry(
-        id: '$habitTitle-$ym',
-        user_email: 'alice@example.com',
+        id: const Uuid().v4(),
+        user_email: user_email,
         habitTitle: habitTitle,
         date: DateTime(year, month),
         value: (r['total'] as num).toDouble(),
@@ -509,6 +510,8 @@ class DbHelper {
     );
   }
 
+
+
   Future<void> upsertHabit(Habit habit, String user_email) async {
     final db = await database;
     final exists = (await db.query(
@@ -523,6 +526,7 @@ class DbHelper {
       await db.update(
         'habits',
         {
+          'id'         : const Uuid().v4(),
           'goal'       : habit.goal,
           'unit'       : habit.unit,
           'usePedometer': habit.usePedometer ? 1 : 0,
@@ -538,6 +542,7 @@ class DbHelper {
         'habits',
         {
           'user_email'   : user_email,
+          'id'         : const Uuid().v4(),
           'title'        : habit.title,
           'unit'         : habit.unit,
           'goal'         : habit.goal,
@@ -558,6 +563,7 @@ class DbHelper {
     );
     return rows.map((r) {
       return Habit(
+        id           : r['id']        as String,
         title       : r['title']        as String,
         unit        : r['unit']         as String,
         goal        : (r['goal']        as num).toDouble(),
