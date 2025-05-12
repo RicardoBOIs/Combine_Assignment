@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../auth_service.dart';
 import '../widgets/fancy_button.dart';
-import 'reset_page.dart';
+
 import 'package:assignment_test/YenHan/firestore_service.dart';
 import 'package:assignment_test/YenHan/Databases/UserDao.dart';
 import 'package:assignment_test/screen/home.dart';
