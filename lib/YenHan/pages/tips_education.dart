@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../screen/home.dart';
 import 'package:assignment_test/YenHan/Databases/CarbonFootPrintDao.dart';
 import '../../screen/track_habit_screen.dart';
+import 'package:assignment_test/Willie/community_main.dart';
 
 String _selectedRegion = 'MY';
 
@@ -146,7 +147,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
         nextPage = const TrackHabitScreen();
         break;
       case 2:
-        nextPage = const TrackHabitScreen();
+        nextPage = const CommunityChallengesScreen();
         break;
       case 3:
         nextPage = TipsEducationScreen();
