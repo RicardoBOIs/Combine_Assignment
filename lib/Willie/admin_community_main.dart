@@ -38,21 +38,31 @@ class _AdminMainPageState extends State<AdminMainPage> {
   }
 
   Future<void> _loadData() async {
+    // 1) Sync remote → local
     await _repo.syncAllAdmin();
 
-    // Load additional stats
+    // 2) Fetch all events
     final events = await _repo.getCommunities();
     final now = DateTime.now();
 
+    // 3) For each event, load its joins and count “joined” statuses
+    final joinLists = await Future.wait(
+      events.map((e) => _repo.getJoinsForCommunity(e.id!)),
+    );
+
+    int totalParticipants = 0;
+    for (final joins in joinLists) {
+      totalParticipants += joins.where((j) => j.status == 'joined').length;
+    }
+
+    // 4) Update state
     setState(() {
       _totalEvents = events.length;
       _upcomingEvents = events.where((e) => e.startDate.isAfter(now)).length;
-
-      // This would be better implemented with a dedicated API call
-      // This is a simplified version for demonstration
-      _totalParticipants = events.length * 5; // Placeholder value
+      _totalParticipants = totalParticipants;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -243,21 +253,21 @@ class _AdminMainPageState extends State<AdminMainPage> {
           ),
 
           _buildActionCard(
-            'Create a New Event',
-            'Create and publish a new community event',
-            Icons.add_circle_outline,
+            'Manage Events',
+            'View, edit, and manage all your events',
+            Icons.edit_calendar,
                 () => Navigator.push<bool>(
               context,
-              MaterialPageRoute(builder: (_) => const AddEventPage()),
-            ).then((created) {
-              // after pop, re-sync if they actually created something (or just always)
-              if (created == true) {
+              MaterialPageRoute(builder: (_) => const EditEventListPage()),
+            ).then((edited) {
+              if (edited == true) {
                 setState(() {
                   _initialSync = _loadData();
                 });
               }
             }),
           ),
+
         ],
       ),
     );
