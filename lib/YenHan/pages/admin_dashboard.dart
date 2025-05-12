@@ -389,13 +389,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onPressed: _refreshTips,
             tooltip: 'Refresh Tips',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            tooltip: 'Logout',
-          ),
+
         ],
       ),
       body: Container(

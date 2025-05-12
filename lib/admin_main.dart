@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../Willie/admin_community_main.dart';
 import '../../YenHan/pages/admin_dashboard.dart';
+import 'package:assignment_test/YenHan/pages/login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+
 
 
 class AdminMain extends StatelessWidget {
@@ -13,7 +18,20 @@ class AdminMain extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         backgroundColor: Colors.green,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () {
+              firebaseAuth.signOut();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+            tooltip: 'Logout',
+          )
+        ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
