@@ -61,6 +61,10 @@ class FirestoreService {
       kgCO2e: kgCO2e,
     ).toJson();
 
+    await _db
+        .collection('daily_Carbon_FootPrint_record')
+        .doc(email)
+        .set({'_': true}, SetOptions(merge: true));
 
     await _db
         .collection('daily_Carbon_FootPrint_record')

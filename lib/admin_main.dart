@@ -5,6 +5,7 @@ import 'package:assignment_test/YenHan/pages/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:assignment_test/YenHan/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:assignment_test/YenHan/pages/Daily_FootPrint_Overview.dart';
 
 final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
@@ -83,13 +84,25 @@ class AdminMain extends StatelessWidget {
         ),
         onPressed: () => _showAdminsPage(context),
       ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.assessment),
+              label: const Text('User footprints overview'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.green,
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FootprintAdminPage()),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
 
  // A lightweight page that lists current admins, lets you add one,
  // and remove any entry directly from Firestore.
