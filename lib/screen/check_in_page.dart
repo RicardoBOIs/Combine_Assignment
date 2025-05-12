@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/check_in_challenge.dart';
-import '../services/database_helper.dart' as db_helper;
-import '../services/firestoreKK.dart';
+import '../models/check_in_challenge.dart'; // This model might still be relevant for other parts of your app
+import '../services/database_helper.dart' as db_helper; // Updated for no habitId
+import '../services/firestoreKK.dart'; // Updated for no habitId in paths
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart'; // For status bar styling
+import 'package:firebase_auth/firebase_auth.dart'; // For FirebaseAuth.instance.currentUser
 
 class CheckInPage extends StatefulWidget {
-  final String challengeId;
+  final String challengeId; // This can still be used for things like the Hero tag, or removed if no longer needed anywhere.
   final String challengeName;
 
   const CheckInPage({
@@ -31,7 +32,9 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
 
   final db_helper.DatabaseHelper _dbHelper = db_helper.DatabaseHelper();
   final FirestoreService _firestoreService = FirestoreService();
-  final String _placeholderUserId = 'placeholder_user_id_for_testing';
+
+  // Stores the authenticated user's email, used as the userId for all data operations
+  String _currentUserId = ''; // Will be initialized in initState
 
   // Define colors for better theming
   final Color _primaryColor = const Color(0xFF4CAF50); // Medium green
@@ -51,6 +54,23 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
+
+    // Initialize _currentUserId with the authenticated user's email
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) {
+      // Handle case where no user is logged in or email is missing
+      // Show a message and pop the page as a user is required for check-ins
+      print('Error: No authenticated user or user email found for CheckInPage.');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in to use check-in feature.')),
+        );
+        Navigator.pop(context); // Go back if no user
+      });
+      _isLoading = false; // Prevent loading indicator from staying indefinitely
+      return; // Exit initState early as no user is available
+    }
+    _currentUserId = user.email!; // Assign the user's email
 
     // Set up animation controller
     _animationController = AnimationController(
@@ -74,24 +94,25 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
   }
 
   Future<void> _loadCheckInCountAndStage() async {
-    final String userId = _placeholderUserId;
-    final String habitId = widget.challengeId;
+    // Use the email as the userId for all data operations
+    final String userId = _currentUserId;
 
     setState(() {
       _isLoading = true;
     });
 
     int count = 0;
-    DateTime? latestCheckInTime;
+    DateTime? _latestCheckInTime;
 
     try {
-      count = await _firestoreService.getCheckInCount(userId, habitId);
-      final latestRecordData = await _firestoreService.getLatestDailyRecord(userId, habitId);
+      // Updated: Calls to FirestoreService no longer pass habitId
+      count = await _firestoreService.getCheckInCount(userId);
+      final latestRecordData = await _firestoreService.getLatestDailyRecord(userId);
 
       if (latestRecordData != null) {
         final dynamic timestampData = latestRecordData['checkInTimestamp'];
         if (timestampData is Timestamp) {
-          latestCheckInTime = timestampData.toDate();
+          _latestCheckInTime = timestampData.toDate();
         }
       }
 
@@ -100,11 +121,13 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
           final String dateId = latestRecordData['date'] != null
               ? DateFormat('yyyy-MM-dd').format((latestRecordData['date'] as Timestamp).toDate())
               : DateFormat('yyyy-MM-dd').format(DateTime.now());
-          await _dbHelper.saveDailyRecord(userId, habitId, dateId, {
-            'userId': userId,
-            'habitId': habitId,
-            'date': DateFormat('yyyy-MM-dd').format(latestCheckInTime ?? DateTime.now()),
-            'checkInTimestamp': (latestCheckInTime ?? DateTime.now()).toIso8601String(),
+
+          // Updated: saveDailyRecord for SQLite no longer passes habitId
+          await _dbHelper.saveDailyRecord(userId, dateId, {
+            'userId': userId, // This will be the email for SQLite
+            // 'habitId' is removed as it's no longer in the SQLite schema
+            'date': DateFormat('yyyy-MM-dd').format(_latestCheckInTime ?? DateTime.now()),
+            'checkInTimestamp': (_latestCheckInTime ?? DateTime.now()).toIso8601String(),
             'treeGrowthStageOnDay': latestRecordData['treeGrowthStageOnDay'] ?? 0,
             'createdAt': (latestRecordData['createdAt'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
           });
@@ -125,13 +148,14 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
       }
 
       try {
-        count = await _dbHelper.getCheckInCount(userId, habitId);
-        final latestRecordData = await _dbHelper.getLatestDailyRecord(userId, habitId);
+        // Updated: Calls to DatabaseHelper no longer pass habitId
+        count = await _dbHelper.getCheckInCount(userId);
+        final latestRecordData = await _dbHelper.getLatestDailyRecord(userId);
 
         if (latestRecordData != null) {
           final dynamic timestampData = latestRecordData['checkInTimestamp'];
           if (timestampData is String) {
-            latestCheckInTime = DateTime.tryParse(timestampData);
+            _latestCheckInTime = DateTime.tryParse(timestampData);
           }
         }
       } catch (e) {
@@ -156,7 +180,7 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
     setState(() {
       _totalCheckInDays = count;
       _currentTreeGrowthStage = calculatedStage;
-      _lastCheckInDate = latestCheckInTime;
+      _lastCheckInDate = _latestCheckInTime;
       _isLoading = false;
     });
 
@@ -177,13 +201,13 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
       return;
     }
 
-    final String userId = _placeholderUserId;
-    final String habitId = widget.challengeId;
+    final String userId = _currentUserId; // User's email
     final now = DateTime.now();
     final String todayDateId = DateFormat('yyyy-MM-dd').format(now);
 
     try {
-      final existingRecord = await _firestoreService.getLatestDailyRecord(userId, habitId);
+      // Updated: Call to FirestoreService no longer passes habitId
+      final existingRecord = await _firestoreService.getLatestDailyRecord(userId);
 
       if (existingRecord != null) {
         final dynamic timestampData = existingRecord['checkInTimestamp'];
@@ -235,8 +259,8 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
 
     // Create daily record for Firestore
     final Map<String, dynamic> dailyRecordData = {
-      'userId': userId,
-      'habitId': habitId,
+      'userId': userId, // This will be the user's email for Firestore
+      // 'habitId' field is removed from the Firestore document
       'date': Timestamp.fromDate(DateTime(now.year, now.month, now.day)),
       'checkInTimestamp': Timestamp.fromDate(now),
       'treeGrowthStageOnDay': newTreeGrowthStage,
@@ -244,19 +268,20 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
     };
 
     try {
-      // Save to Firestore
-      await _firestoreService.saveDailyRecord(userId, habitId, todayDateId, dailyRecordData);
+      // Updated: Call to FirestoreService no longer passes habitId
+      await _firestoreService.saveDailyRecord(userId, todayDateId, dailyRecordData);
 
       // Save to SQLite
       final Map<String, dynamic> dailyRecordDataForSQLite = {
         'userId': userId,
-        'habitId': habitId,
+        // 'habitId' field is removed from the SQLite data map
         'dateId': todayDateId,
         'checkInTimestamp': now.toIso8601String(),
         'treeGrowthStageOnDay': newTreeGrowthStage,
         'createdAt': now.toIso8601String(),
       };
-      await _dbHelper.saveDailyRecord(userId, habitId, todayDateId, dailyRecordDataForSQLite);
+      // Updated: Call to saveDailyRecord for SQLite no longer passes habitId
+      await _dbHelper.saveDailyRecord(userId, todayDateId, dailyRecordDataForSQLite);
 
       // Update state
       setState(() {
@@ -664,7 +689,7 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Last check-in: ${DateFormat('MMM d, yyyy').format(_lastCheckInDate!)}',
+                                'Last check-in: ${DateFormat('MMM d, HH:mm').format(_lastCheckInDate!)}', // Fixed DateFormat string
                                 style: TextStyle(
                                   color: _textLightColor,
                                   fontSize: 14,

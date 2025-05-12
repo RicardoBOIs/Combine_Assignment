@@ -13,6 +13,7 @@ import '../../db/sqflite_steps_repository.dart'; // For fetching step data for c
 import '../../screen/interactive_trend_chart.dart'; // The chart widget
 import '../../screen/monthly_bar_chart.dart'; // The chart widget
 import '../../screen/track_habit_screen.dart'; // For navigation to the dedicated habit tracking screen
+import '../../screen/edit_habit_screen.dart'; // <--- Import EditHabitScreen for the FAB
 
 // Assuming you have this page for check-ins based on previous context
 import '../screen/check_in_page.dart';
@@ -58,7 +59,6 @@ class _HomePageState extends State<HomePage> {
   ];
 
   // Placeholder user email (replace with actual authenticated user email)
-  // final String _userEmail = 'alice@example.com'; // <--- COMMENTED OUT OR REMOVE THIS LINE
   final String _userEmail = FirebaseAuth.instance.currentUser?.email ?? 'anonymous_or_local_user'; // <--- REPLACED WITH THIS LINE
 
   @override
@@ -446,7 +446,6 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24.0),
 
             // Habit Trends & Monthly Totals Section (newly integrated)
-            // Habit Trends & Monthly Totals Section (newly integrated)
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -526,32 +525,28 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey, // Color for unselected items
         showUnselectedLabels: true, // Show labels for unselected items
         type: BottomNavigationBarType.fixed, // Ensures items are fixed width
-        onTap: (index) {
+        onTap: (index) async { // Made onTap async to await push
           if (index == 0) {
             // Already on Home page, maybe do nothing or refresh
           } else if (index == 1) { // 'Track Habit' is at index 1
-            Navigator.push(
+            final result = await Navigator.push( // <--- MODIFIED NAVIGATION
               context,
               MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
             );
-
-          }else if (index == 2) { // 'Track Habit' is at index 1
+            if (result == true) {
+              _loadAllHabitsAndChartData(); // Reload data for HomePage
+            }
+          }else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
             );
-
           } else if (index==3){
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
             );
           }
-          // You can add more conditions for other tabs here
-          // else if (index == 2) { // Community
-          //   // Navigator.push(context, MaterialPageRoute(builder: (context) => const CommunityScreen()));
-          // }
-          // ...
         },
       ),
     );
