@@ -89,57 +89,31 @@ class _AdminMainPageState extends State<AdminMainPage> {
         backgroundColor: Colors.green[700],
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.light,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,              // manual refresh
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildStats(),
-            _buildActionCards(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _loadData,                // pull-to-refresh
+        color: Colors.green[700],
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // needed for RefreshIndicator
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildStats(),
+              _buildActionCards(),
+            ],
+          ),
         ),
       ),
     );
+
   }
 
-  // Widget _buildHeader() {
-  //   return Container(
-  //     padding: const EdgeInsets.only(left: 24, right: 24, top: 30, bottom: 30),
-  //     decoration: BoxDecoration(
-  //       color: Colors.green[700],
-  //       borderRadius: const BorderRadius.only(
-  //         bottomLeft: Radius.circular(30),
-  //         bottomRight: Radius.circular(30),
-  //       ),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Text(
-  //           'Welcome Back',
-  //           style: TextStyle(
-  //             fontSize: 16,
-  //             color: Colors.white70,
-  //           ),
-  //         ),
-  //         const SizedBox(height: 8),
-  //         const Text(
-  //           'Admin Dashboard',
-  //           style: TextStyle(
-  //             fontSize: 28,
-  //             fontWeight: FontWeight.bold,
-  //             color: Colors.white,
-  //           ),
-  //         ),
-  //         const SizedBox(height: 8),
-  //         Text(
-  //           'Today: ${DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now())}',
-  //           style: const TextStyle(color: Colors.white70),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildStats() {
     return Padding(
@@ -255,20 +229,34 @@ class _AdminMainPageState extends State<AdminMainPage> {
             'Create a New Event',
             'Create and publish a new community event',
             Icons.add_circle_outline,
-                () => Navigator.push(
+                () => Navigator.push<bool>(
               context,
               MaterialPageRoute(builder: (_) => const AddEventPage()),
-            ),
+            ).then((created) {
+              // after pop, re-sync if they actually created something (or just always)
+              if (created == true) {
+                setState(() {
+                  _initialSync = _loadData();
+                });
+              }
+            }),
           ),
-          const SizedBox(height: 16),
+
           _buildActionCard(
-            'Manage Events',
-            'View, edit, and manage all your events',
-            Icons.edit_calendar,
-                () => Navigator.push(
+            'Create a New Event',
+            'Create and publish a new community event',
+            Icons.add_circle_outline,
+                () => Navigator.push<bool>(
               context,
-              MaterialPageRoute(builder: (_) => const EditEventListPage()),
-            ),
+              MaterialPageRoute(builder: (_) => const AddEventPage()),
+            ).then((created) {
+              // after pop, re-sync if they actually created something (or just always)
+              if (created == true) {
+                setState(() {
+                  _initialSync = _loadData();
+                });
+              }
+            }),
           ),
         ],
       ),

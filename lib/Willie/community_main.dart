@@ -418,24 +418,42 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
                       }
                       final infos = infoSnap.data!;
                       // merge meta info for sort & display
+// … inside _buildScaffold, where you merge meta info for sort & display …
                       final items = <Map<String, dynamic>>[];
                       for (var i = 0; i < comms.length; i++) {
-                        final c = comms[i];
+                        final c         = comms[i];
                         final hasJoined = infos[i][0] as bool;
                         final count     = infos[i][1] as int;
-                        final expired   = c.endDate.isBefore(now);
-                        final full      = count >= c.capacity;
-                        final status    = expired ? 2 : (full ? 1 : 0); // 0 avail
+
+                        // New flags
+                        final upcoming = DateTime.now().isBefore(c.startDate);
+                        final expired  = DateTime.now().isAfter(c.endDate);
+                        final full     = count >= c.capacity;
+                        final canJoin   = !hasJoined && !upcoming && !expired && !full;
+
+                        // Compute a sort “status” code: upcoming → available → full → expired
+                        int status;
+                        if (canJoin) {
+                          status = 0;     // Allow Join
+                        } else if (hasJoined) {
+                          status = 1;     // Already Joined
+                        } else if (upcoming) {
+                          status = 2;     // Upcoming
+                        } else if (full) {
+                          status = 3;     // Full
+                        } else /*expired*/ {
+                          status = 4;     // Expired
+                        }
+
                         items.add({
-                          'community': c,
-                          'joined': hasJoined,
-                          'joinCount': count,
-                          'status': status,
+                          'community':  c,
+                          'joined':     hasJoined,
+                          'joinCount':  count,
+                          'status':     status,
                         });
                       }
-                      // Sort: available → full → expired
-                      items.sort((a, b) =>
-                          (a['status'] as int).compareTo(b['status'] as int));
+// then sort:
+                      items.sort((a, b) => (a['status'] as int).compareTo(b['status'] as int));
 
                       if (items.isEmpty) {
                         return Center(
@@ -474,34 +492,40 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
                         separatorBuilder: (_, __) =>
                         const SizedBox(height: 16),
                         itemBuilder: (ctx3, idx) {
-                          final e   = items[idx];
-                          final cm  = e['community'] as CommunityMain;
-                          final joined    = e['joined'] as bool;
-                          final count     = e['joinCount'] as int;
-                          final expired   = e['status'] == 2;
-                          final full      = e['status'] == 1;
+                          final e        = items[idx];
+                          final cm       = e['community'] as CommunityMain;
+                          final joined   = e['joined']    as bool;
+                          final count    = e['joinCount'] as int;
+                          final upcoming = DateTime.now().isBefore(cm.startDate);
+                          final expired  = DateTime.now().isAfter(cm.endDate);
+                          final full     = count >= cm.capacity;
 
                           String label;
                           IconData buttonIcon;
                           VoidCallback? action;
-                          if (joined) {
-                            // Whoever is already in can ALWAYS see details / exit, no matter what.
+
+                          if (upcoming) {
+                            label  = 'Upcoming';
+                            buttonIcon   = Icons.schedule;
+                            action = null;                // cannot join yet
+                          } else if (joined) {
                             label  = 'View Details';
-                            buttonIcon = Icons.visibility;
+                            buttonIcon   = Icons.visibility;
                             action = () => _showEventDetail(context, cm, joined, count);
                           } else if (expired) {
                             label  = 'Expired';
-                            buttonIcon = Icons.event_busy;
+                            buttonIcon   = Icons.event_busy;
                             action = null;
                           } else if (full) {
                             label  = 'Full';
-                            buttonIcon = Icons.people;
+                            buttonIcon   = Icons.people;
                             action = null;
                           } else {
                             label  = 'Join';
-                            buttonIcon = Icons.add_circle_outline;
+                            buttonIcon   = Icons.add_circle_outline;
                             action = () => _showEventDetail(context, cm, joined, count);
                           }
+
 
                           return _ChallengeCard(
                             title: cm.title,
@@ -522,6 +546,7 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
                             joinCount: count,
                             capacity: cm.capacity,
                             joined: joined,
+                            upcoming: upcoming,
                             expired: expired,
                             full: full,
                           );
@@ -551,19 +576,19 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
             currentIndex: 2,
             selectedItemColor: Colors.green.shade700,
             unselectedItemColor: Colors.grey.shade600,
-            backgroundColor: Colors.white,
+
             elevation: 0,
             type: BottomNavigationBarType.fixed,
             selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Habits'),
+              BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: 'Track Habit'),
               BottomNavigationBarItem(
                   icon: Icon(Icons.people),
                   activeIcon: Icon(Icons.people_alt),
                   label: 'Community'
               ),
-              BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Tips'),
+              BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Tips & Learning'),
               BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
             ],
             onTap: (index) async {
@@ -630,7 +655,11 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
 
 /// Challenge card component (enhanced).
 class _ChallengeCard extends StatelessWidget {
-  final String title, description, startDate, endDate, eventType;
+  final String title,
+      description,
+      startDate,
+      endDate,
+      eventType;
   final Widget imageWidget;
   final String primaryButtonLabel;
   final IconData primaryButtonIcon;
@@ -640,6 +669,7 @@ class _ChallengeCard extends StatelessWidget {
   final int joinCount;
   final int capacity;
   final bool joined;
+  final bool upcoming;    // ← new
   final bool expired;
   final bool full;
 
@@ -659,36 +689,38 @@ class _ChallengeCard extends StatelessWidget {
     required this.joinCount,
     required this.capacity,
     required this.joined,
+    required this.upcoming,  // ← new
     required this.expired,
     required this.full,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Calculate percentage filled
-    final double fillPercentage = capacity > 0 ? joinCount / capacity * 100 : 0;
-
-    // Determine status chip color and text
+    // Determine status badge
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
-    if (joined) {
+    if (upcoming) {
+      statusColor = Colors.blue.shade600;
+      statusText  = 'Upcoming';
+      statusIcon  = Icons.schedule;
+    } else if (joined) {
       statusColor = Colors.green.shade700;
-      statusText = 'Joined';
-      statusIcon = Icons.check_circle;
+      statusText  = 'Joined';
+      statusIcon  = Icons.check_circle;
     } else if (expired) {
       statusColor = Colors.grey.shade700;
-      statusText = 'Expired';
-      statusIcon = Icons.event_busy;
+      statusText  = 'Expired';
+      statusIcon  = Icons.event_busy;
     } else if (full) {
       statusColor = Colors.orange.shade700;
-      statusText = 'Full';
-      statusIcon = Icons.people;
+      statusText  = 'Full';
+      statusIcon  = Icons.people;
     } else {
       statusColor = Colors.blue.shade700;
-      statusText = 'Open';
-      statusIcon = Icons.event_available;
+      statusText  = 'Open';
+      statusIcon  = Icons.event_available;
     }
 
     return Container(
@@ -706,19 +738,13 @@ class _ChallengeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card Header with Image
+          // Image + status badge
           Stack(
             children: [
-              // Event image
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: imageWidget,
-                ),
+                child: SizedBox(height: 130, width: double.infinity, child: imageWidget),
               ),
-              // Top status badge
               Positioned(
                 top: 10,
                 right: 10,
@@ -729,23 +755,17 @@ class _ChallengeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(statusIcon, color: Colors.white, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         statusText,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
               ),
-              // Left event type badge
               Positioned(
                 top: 10,
                 left: 10,
@@ -757,114 +777,66 @@ class _ChallengeCard extends StatelessWidget {
                   ),
                   child: Text(
                     eventType,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               ),
             ],
           ),
 
-          // Card Content
+          // Content
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title and date
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                // Title
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
 
-                // Event date range
+                // Dates
                 Row(
                   children: [
                     Icon(Icons.event, size: 16, color: Colors.green.shade700),
                     const SizedBox(width: 6),
-                    Text(
-                      "$startDate - $endDate",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    Text("$startDate - $endDate", style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
                   ],
                 ),
                 const SizedBox(height: 12),
 
                 // Description
-                Text(
-                  description,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(description, style: TextStyle(fontSize: 14, color: Colors.grey.shade800), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 16),
 
-                // Capacity progress bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '$joinCount participants',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${capacity - joinCount} spots left',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: full || expired ? Colors.red.shade700 : Colors.grey.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: capacity > 0 ? joinCount / capacity : 0,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            fillPercentage >= 80
-                                ? Colors.orange.shade700
-                                : Colors.green.shade600
-                        ),
-                        minHeight: 8,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Action buttons
+                // Progress bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$joinCount participants', style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                    Text('${capacity - joinCount} spots left',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: (full || expired) ? Colors.red.shade700 : Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        )),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: capacity > 0 ? joinCount / capacity : 0,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      (joinCount / capacity) >= 0.8 ? Colors.orange.shade700 : Colors.green.shade600,
+                    ),
+                    minHeight: 8,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Buttons
+                Row(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
@@ -878,7 +850,6 @@ class _ChallengeCard extends StatelessWidget {
                           foregroundColor: primaryOnPressed != null
                               ? (joined ? Colors.green.shade800 : Colors.white)
                               : Colors.grey.shade700,
-                          elevation: primaryOnPressed != null ? 0 : 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                             side: primaryOnPressed != null && joined
@@ -898,7 +869,6 @@ class _ChallengeCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.green.shade700,
-                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                             side: BorderSide(color: Colors.green.shade600),
