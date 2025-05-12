@@ -9,7 +9,9 @@ import 'package:assignment_test/screen/home.dart'; // For navigating back to Hom
 import 'package:assignment_test/screen/track_habit_screen.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
 import 'package:assignment_test/Willie/community_main.dart'; // For CommunityChallengesScreen
+import 'package:assignment_test/YenHan/pages/login_page.dart';
 
+final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -367,9 +369,54 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // Info cards have been removed, so this section is no longer used.
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text('Log Out'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Logout'),
+                        content: const Text('Are you sure you want to log out?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Log Out'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (confirmed == true) {
+                    firebaseAuth.signOut();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    );
+                  }
+                },
+              ),
+            ),
+
+
             // If you plan to re-introduce them, ensure you fetch the data for them.
           ],
         ),

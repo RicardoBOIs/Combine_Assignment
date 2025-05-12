@@ -10,6 +10,7 @@ import '../../screen/home.dart';
 import 'package:assignment_test/YenHan/Databases/CarbonFootPrintDao.dart';
 import '../../screen/track_habit_screen.dart';
 import 'package:assignment_test/Willie/community_main.dart';
+import 'package:assignment_test/screen/profile.dart';
 
 String _selectedRegion = 'MY';
 
@@ -136,7 +137,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
   int _selectedIndex = 3;
 
   void _onNavItemTapped(int index) {
-    if (_selectedIndex == index) return; // Don't navigate if we're already on this page
+    if (_selectedIndex == index) return;
 
     Widget nextPage;
     switch (index) {
@@ -153,7 +154,7 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
         nextPage = TipsEducationScreen();
         break;
       case 4:
-        nextPage = const TrackHabitScreen();
+        nextPage = const ProfilePage();
         break;
       default:
         nextPage = const HomePage();
