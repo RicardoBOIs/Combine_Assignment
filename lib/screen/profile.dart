@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// Ensure these imports point to the correct locations relative to profile.dart
-import '../YenHan/firestore_service.dart'; // <--- Corrected import path to match standard practice
-import '../YenHan/Databases/UserDao.dart'; // Correct import for UserDao
-
-// Import other screens for navigation
-import 'package:assignment_test/screen/home.dart'; // For navigating back to HomePage
+import '../YenHan/firestore_service.dart';
+import '../YenHan/Databases/UserDao.dart';
+import 'package:assignment_test/screen/home.dart';
 import 'package:assignment_test/screen/track_habit_screen.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
-import 'package:assignment_test/Willie/community_main.dart'; // For CommunityChallengesScreen
+import 'package:assignment_test/Willie/community_main.dart';
 import 'package:assignment_test/YenHan/pages/login_page.dart';
-
-final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -21,19 +16,19 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
   String _selectedPhoneType = 'Mobile';
+  bool _isLoading = false;
+  int _currentIndex = 4; // Profile page index
 
   final FirestoreService _firestoreService = FirestoreService();
   final UserDao _userDao = UserDao();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  User? _currentUser;
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -41,384 +36,166 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserProfile();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _locationController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadUserProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    _currentUser = _auth.currentUser;
-
-    if (_currentUser != null && _currentUser!.email != null) { // Ensure email is not null
-      _emailController.text = _currentUser!.email!; // Use non-null asserted email
-
-      try {
-        // Always try Firestore first to get the most up-to-date profile
-        final firestoreData = await _firestoreService.fetchUserProfile(_currentUser!.email!);
-
-        if (firestoreData != null) {
-          // If data is found in Firestore, populate controllers with it
-          _nameController.text = firestoreData['username'] as String? ?? '';
-          _phoneController.text = firestoreData['phone'] as String? ?? '';
-          _locationController.text = firestoreData['location'] as String? ?? '';
-
-          // Also, ensure this Firestore data is synced to the local SQLite database.
-          // EnsureUser will insert if the user doesn't exist locally.
-          // If they do exist, it will do nothing (due to ConflictAlgorithm.ignore in UserDao).
-          // Local updates will happen when the user clicks 'Save' via `updateProfile`.
-          await _userDao.EnsureUser(
-            email: _currentUser!.email!,
-            username: _nameController.text,
-            phone: _phoneController.text,
-            location: _locationController.text,
-          );
-        } else {
-          // No profile found in Firestore.
-          // This could mean a brand new user, or a user who hasn't saved their profile to Firestore yet.
-          print('User profile not found in Firestore for ${_currentUser!.email}. Initializing local profile from defaults (if not existing locally).');
-
-          // As per your request, we DO NOT try to load from local via `getUserByEmail`.
-          // Instead, we ensure a basic local SQLite entry exists for this email.
-          // The controllers will remain empty strings (their initial state)
-          // unless the user enters data and saves.
-          await _userDao.EnsureUser(
-            email: _currentUser!.email!,
-            username: '', // Default empty values for a new profile
-            phone: '',
-            location: '',
-          );
-        }
-      } catch (e) {
-        print('Error loading user profile: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load profile: ${e.toString()}')),
-        );
-      }
-    } else {
-      // User not logged in or email is missing.
-      print('User not logged in or email is missing.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are not logged in. Please log in to view your profile.')),
-      );
-      // Navigate back if profile page requires login
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Navigator.canPop(context)) { // Check if there's a route to pop
-          Navigator.pop(context);
-        } else {
-          // If no previous route, perhaps navigate to a login/splash screen.
-          // For now, assuming it's okay to push to home as a fallback.
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()));
-        }
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  // Updated _onItemTapped for consistent MaterialPageRoute navigation
   void _onItemTapped(int index) {
+    if (index == _currentIndex) return;
+
     switch (index) {
-      case 0: // Home
+      case 0:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
         break;
-      case 1: // Track Habit
+      case 1:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
         );
         break;
-      case 2: // Community
+      case 2:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
         );
         break;
-      case 3: // Tips & Learning
+      case 3:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => TipsEducationScreen()),
         );
         break;
-      case 4: // Profile (already on this page)
-      // Optionally scroll to top or do nothing
+      case 4:
+      // Already on profile page
         break;
     }
   }
 
+  Future<void> _loadUserProfile() async {
+    setState(() => _isLoading = true);
+    final currentUser = _auth.currentUser;
+
+    if (currentUser?.email != null) {
+      _emailController.text = currentUser!.email!;
+      try {
+        final firestoreData = await _firestoreService.fetchUserProfile(currentUser.email!);
+        if (firestoreData != null) {
+          _nameController.text = firestoreData['username'] ?? '';
+          _phoneController.text = firestoreData['phone'] ?? '';
+          _locationController.text = firestoreData['location'] ?? '';
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: $e')),
+        );
+      }
+    }
+    setState(() => _isLoading = false);
+  }
+
+  void _saveProfile() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _firestoreService.saveUserProfile(
+          username: _nameController.text,
+          phone: _phoneController.text,
+          location: _locationController.text,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Update failed: $e')),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Determine the current index for the BottomNavigationBar
-    int _currentIndex = 4; // Set index 4 for the Profile item on this page
-
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back), // Color is set by AppBarTheme in main.dart
-          onPressed: () {
-            Navigator.pop(context); // Go back to the previous page
-          },
-        ),
-        title: const Text('Profile'), // Color is set by AppBarTheme
-        // Removed the info icon from the AppBar
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.info_outline),
-        //     onPressed: () {
-        //       showDialog(
-        //         context: context,
-        //         builder: (BuildContext context) {
-        //           return AlertDialog(
-        //             title: const Text('Profile Info'),
-        //             content: const Text('This is your profile information.'),
-        //             actions: <Widget>[
-        //               TextButton(
-        //                 child: const Text('Close'),
-        //                 onPressed: () {
-        //                   Navigator.of(context).pop();
-        //                 },
-        //               ),
-        //             ],
-        //           );
-        //         },
-        //       );
-        //     },
-        //   ),
-        // ],
+        title: const Text('My Profile'),
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            // Profile Header
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: const AssetImage('assets/profile_pic.png'), // Placeholder asset
-              backgroundColor: Colors.grey[200],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _nameController.text.isNotEmpty ? _nameController.text : 'Your Name',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Registered User', // You can make this dynamic based on user roles if you have them
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Editable Fields
-            _buildEditableField(
-              icon: Icons.description, // More appropriate for a username/description
-              controller: _nameController,
-              hintText: 'Username',
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildEditableField(
-                    icon: Icons.phone,
-                    controller: _phoneController,
-                    hintText: 'Phone Number',
-                    keyboardType: TextInputType.phone,
-                  ),
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.green.shade100,
+                child: Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Colors.green.shade600
                 ),
-                const SizedBox(width: 8),
-                // Dropdown for Phone Type
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedPhoneType,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                      elevation: 16,
-                      style: const TextStyle(color: Colors.black87, fontSize: 16),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _selectedPhoneType = newValue;
-                          });
-                        }
-                      },
-                      items: <String>['Mobile', 'Home', 'Work']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildEditableField(
-              icon: Icons.location_on,
-              controller: _locationController,
-              hintText: 'Location',
-            ),
-            const SizedBox(height: 16),
-            _buildEditableField(
-              icon: Icons.email,
-              controller: _emailController,
-              hintText: 'Email Address',
-              keyboardType: TextInputType.emailAddress,
-              readOnly: true, // Email should typically not be editable here
-            ),
-            const SizedBox(height: 24),
-
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : () async {
-                  if (_currentUser == null || _currentUser!.email == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please log in to save your profile.')),
-                    );
-                    return;
-                  }
-
-                  setState(() {
-                    _isLoading = true;
-                  });
-
-                  try {
-                    // Saving to Firestore first
-                    await _firestoreService.saveUserProfile(
-                      username: _nameController.text,
-                      phone: _phoneController.text,
-                      location: _locationController.text,
-                    );
-
-                    // Then, update local SQLite profile.
-                    // This `updateProfile` will apply the changes made by the user to the local DB.
-                    await _userDao.updateProfile(
-                      email: _currentUser!.email!,
-                      username: _nameController.text,
-                      phone: _phoneController.text,
-                      location: _locationController.text,
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profile saved successfully!')),
-                    );
-                    print('Profile saved:');
-                    print('Name: ${_nameController.text}');
-                    print('Phone: ${_phoneController.text}');
-                    print('Location: ${_locationController.text}');
-                    print('Email: ${_emailController.text}');
-                    print('Phone Type: $_selectedPhoneType');
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to save profile: ${e.toString()}')),
-                    );
-                    print('Error saving profile: $e');
-                  } finally {
-                    setState(() {
-                      _isLoading = false;
-                    });
-                  }
-                },
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _nameController.text.isNotEmpty
+                    ? _nameController.text
+                    : 'User Profile',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              _buildProfileField(
+                controller: _nameController,
+                label: 'Username',
+                icon: Icons.person_outline,
+                validator: (value) => value!.isEmpty ? 'Please enter a username' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildProfileField(
+                controller: _phoneController,
+                label: 'Phone Number',
+                icon: Icons.phone,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              _buildProfileField(
+                controller: _locationController,
+                label: 'Location',
+                icon: Icons.location_on,
+              ),
+              const SizedBox(height: 16),
+              _buildProfileField(
+                controller: _emailController,
+                label: 'Email',
+                icon: Icons.email,
+                readOnly: true,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _saveProfile,
                 style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
                   backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  elevation: 2,
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                  'Save',
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: const Text('Update Profile'),
               ),
-            ),
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Log Out'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
                 onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text('Confirm Logout'),
-                        content: const Text('Are you sure you want to log out?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Log Out'),
-                          ),
-                        ],
-                      );
-                    },
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
                   );
-
-                  if (confirmed == true) {
-                    firebaseAuth.signOut();
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    );
-                  }
                 },
+                icon: const Icon(Icons.logout, color: Colors.red),
+                label: const Text(
+                    'Log Out',
+                    style: TextStyle(color: Colors.red)
+                ),
               ),
-            ),
-
-
-            // If you plan to re-introduce them, ensure you fetch the data for them.
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -449,81 +226,33 @@ class _ProfilePageState extends State<ProfilePage> {
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
-        onTap: _onItemTapped, // Use the function to handle taps and navigation
+        onTap: _onItemTapped,
       ),
     );
   }
 
-  // Helper function to build an editable text field row
-  Widget _buildEditableField({
-    required IconData icon,
+  Widget _buildProfileField({
     required TextEditingController controller,
-    String? hintText,
+    required String label,
+    required IconData icon,
     TextInputType keyboardType = TextInputType.text,
-    bool readOnly = false, // Added readOnly parameter
+    String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: Colors.grey),
-        const SizedBox(width: 16),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            readOnly: readOnly, // Use the readOnly parameter
-            style: const TextStyle(fontSize: 16, color: Colors.black87),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(color: Colors.grey[600]),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: const BorderSide(color: Colors.grey),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: const BorderSide(color: Colors.grey),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: BorderSide(color: Colors.green[700]!),
-              ),
-              fillColor: readOnly ? Colors.grey[100] : null, // Gray background for read-only
-              filled: readOnly,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-              isDense: true,
-            ),
-          ),
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.green),
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
-      ],
-    );
-  }
-
-  // The _buildInfoCard helper function is no longer used in the current build method,
-  // but kept here in case you re-introduce cards later.
-  Widget _buildInfoCard({required String title, required Widget content}) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8.0),
+        fillColor: readOnly ? Colors.grey[200] : null,
+        filled: readOnly,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          content,
-        ],
-      ),
+      keyboardType: keyboardType,
+      validator: validator,
+      readOnly: readOnly,
     );
   }
 }
-
