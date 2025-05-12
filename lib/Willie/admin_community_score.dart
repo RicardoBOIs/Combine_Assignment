@@ -197,7 +197,7 @@ class _ScoreInputScreenState extends State<ScoreInputScreen> {
                   children: [
                     Icon(Icons.error_outline, color: Colors.red, size: 48),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'Error loading data',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -262,7 +262,7 @@ class _ScoreInputScreenState extends State<ScoreInputScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.people_outline,
                           size: 64,
                           color: Colors.grey,
@@ -367,7 +367,7 @@ class _ScoreInputScreenState extends State<ScoreInputScreen> {
                                           padding: const EdgeInsets.only(top: 2),
                                           child: Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.phone_outlined,
                                                 size: 14,
                                                 color: Colors.grey,
@@ -407,7 +407,7 @@ class _ScoreInputScreenState extends State<ScoreInputScreen> {
                                         ),
                                       ),
                                     ),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -470,7 +470,7 @@ class _ScoreInputScreenState extends State<ScoreInputScreen> {
                         ),
                         elevation: 2,
                       ),
-                      child: Text(
+                      child: const Text(
                         'SAVE CHANGES',
                         style: TextStyle(
                           fontSize: 16,

@@ -11,6 +11,10 @@ import 'join_event_model.dart';
 import 'community_leaderboard.dart';
 import 'community_joined_history.dart';   // ⬅️ new line
 
+import '../screen/home.dart';
+import '../screen/track_habit_screen.dart';
+import '../screen/profile.dart';
+import '../YenHan/pages/tips_education.dart';
 /// Route observer (put once in this file; referenced from main.dart)
 final RouteObserver<ModalRoute<void>> routeObserver =
 RouteObserver<ModalRoute<void>>();
@@ -123,8 +127,8 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
           onExitConfirmed: () {
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.info, color: Colors.white),
                   SizedBox(width: 12),
                   Text('You left the event'),
@@ -216,8 +220,7 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
         title: const Text('Community Challenges',
             style: TextStyle(
               color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 24,
             )),
         backgroundColor: Colors.green.shade600,
         elevation: 2,
@@ -563,7 +566,41 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
               BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Tips'),
               BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
             ],
-            onTap: (_) {},
+            onTap: (index) async {
+              if (index == 0) {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                );
+                if (result == true) {
+                  _syncAndFetch();
+                }
+              } else if (index == 1) { // 'Track Habit' is at index 1
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
+                );
+                if (result == true) {
+                  _syncAndFetch();
+                }
+              } else if (index == 3){ // 'Tips & Learning' is at index 3
+                final result = await Navigator.push( // Use result for tips too
+                  context,
+                  MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
+                );
+                if (result == true) {
+                  _syncAndFetch();
+                }
+              } else if (index == 4) { // 'Profile' is at index 4
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()), // Navigate to ProfilePage
+                );
+                if (result == true) {
+                  _syncAndFetch();
+                }
+              }
+            },
           ),
         ),
       ),
@@ -586,7 +623,7 @@ class _CommunityChallengesScreenState extends State<CommunityChallengesScreen>
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.asset('assets/images/default.jpg', fit: BoxFit.cover),
+      child: Image.asset('assets/defaultEvent.jpg', fit: BoxFit.cover),
     );
   }
 }
@@ -961,7 +998,7 @@ class EventDetailScreen extends StatelessWidget {
                   community.imagePath != null &&
                       File(community.imagePath!).existsSync()
                       ? Image.file(File(community.imagePath!), fit: BoxFit.cover)
-                      : Image.asset('assets/images/default.jpg', fit: BoxFit.cover),
+                      : Image.asset('assets/defaultEvent.jpg', fit: BoxFit.cover),
 
                   // Gradient overlay for better text readability
                   Container(

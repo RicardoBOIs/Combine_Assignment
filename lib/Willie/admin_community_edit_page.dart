@@ -229,7 +229,7 @@ class _EditEventPageState extends State<EditEventPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _accentGreen, width: 2),
-            color: _lightGreen,
+            color: _surfaceColor,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
