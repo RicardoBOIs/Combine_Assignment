@@ -538,15 +538,17 @@ class _HomePageState extends State<HomePage> {
                     separatorBuilder: (context, index) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final event = joinedEvents[index];
-                      final img = (event.imagePath != null && File(event.imagePath!).existsSync())
-                          ? Image.file(File(event.imagePath!), fit: BoxFit.cover)
-                          : Image.asset('assets/images/default.jpg', fit: BoxFit.cover);
+                      // Removed image display logic here
+                      // final img = (event.imagePath != null && File(event.imagePath!).existsSync())
+                      //     ? Image.file(File(event.imagePath!), fit: BoxFit.cover)
+                      //     : Image.asset('assets/images/default.jpg', fit: BoxFit.cover);
 
                       return Card(
                         elevation: 2,
                         margin: EdgeInsets.zero, // Remove default margin
                         child: ListTile(
-                          leading: SizedBox(width: 60, height: 60, child: ClipRRect(borderRadius: BorderRadius.circular(8), child: img)),
+                          // Removed leading property to hide the image
+                          // leading: SizedBox(width: 60, height: 60, child: ClipRRect(borderRadius: BorderRadius.circular(8), child: img)),
                           title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(
                             'Ends: ${fmt(event.endDate)}\n${event.shortDescription}', // Use fmt(event.endDate)
