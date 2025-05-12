@@ -1,4 +1,5 @@
 class Habit {
+  String id;
   String title;
   String unit;
   double goal;
@@ -7,6 +8,7 @@ class Habit {
   bool usePedometer;
 
   Habit({
+    required this.id,
     required this.title,
     required this.unit,
     required this.goal,
@@ -16,6 +18,7 @@ class Habit {
   });
 
   Habit copyWith({double? currentValue}) => Habit(
+    id: id,
     title: title,
     unit: unit,
     goal: goal,

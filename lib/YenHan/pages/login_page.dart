@@ -1,4 +1,3 @@
-import 'package:assignment_test/YenHan/pages/tips_education.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,8 +9,9 @@ import 'package:assignment_test/YenHan/Databases//UserDao.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:assignment_test/screen/home.dart';
 import '../../admin_main.dart';
+import 'package:assignment_test/YenHan/firestore_service.dart';
 
-const adminEmails = ['admin@example.com', 'johnleeyenhan@gmail.com'];
+
 
 // Define theme colors for consistency
 const Color primaryGreen = Color(0xFF4CAF50);
@@ -82,9 +82,10 @@ class _LoginPageState extends State<LoginPage> {
         location: data['location'] ?? '',
       );
 
-      /* 5️⃣  route: admin or home */
+
       /* 5️⃣  route: admin or home */
       if (!mounted) return;
+      final adminEmails = await FirestoreService().fetchAdminEmails();
 
       if (adminEmails.contains(email)) {
         Navigator.pushReplacement(
@@ -232,6 +233,7 @@ class _LoginPageState extends State<LoginPage> {
                           phone: data['phone'] ?? '',
                           location: data['location'] ?? '',
                         );
+                        final adminEmails = await FirestoreService().fetchAdminEmails();
 
                         final Widget nextPage = adminEmails.contains(email)
                             ? const AdminMain()

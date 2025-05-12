@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:assignment_test/YenHan/tip_repository.dart';
-
-
 import 'tips_education.dart';
 // Define theme colors for consistency
 const Color primaryGreen = Color(0xFF4CAF50);
@@ -388,14 +386,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _refreshTips,
             tooltip: 'Refresh Tips',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            tooltip: 'Logout',
-          ),
+          )
+
         ],
       ),
       body: Container(

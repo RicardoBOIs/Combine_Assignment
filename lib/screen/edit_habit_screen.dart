@@ -80,6 +80,7 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
     final clampedValue = inputValue.clamp(0.0, goal);
 
     final updatedHabit = Habit(
+      id: widget.habit.id,
       title: title,
       unit: unit,
       goal: goal,

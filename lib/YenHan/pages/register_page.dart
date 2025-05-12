@@ -1,11 +1,11 @@
 // register_page.dart
-import 'package:assignment_test/YenHan/pages/tips_education.dart';
 import 'package:flutter/material.dart';
 import '../auth_service.dart';
 import '../widgets/fancy_button.dart';
 import 'reset_page.dart';
 import 'package:assignment_test/YenHan/firestore_service.dart';
 import 'package:assignment_test/YenHan/Databases/UserDao.dart';
+import 'package:assignment_test/screen/home.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key, this.prefillEmail});
@@ -206,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (mounted) {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (_) => TipsEducationScreen()),
+                        MaterialPageRoute(builder: (_) => const HomePage()),
                       );
                     }
                   } catch (e) {

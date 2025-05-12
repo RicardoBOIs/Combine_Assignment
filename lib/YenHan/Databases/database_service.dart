@@ -54,7 +54,8 @@ class DatabaseService {
     await db.execute('''
     CREATE TABLE habits (
       user_email   TEXT    NOT NULL,
-      title        TEXT    PRIMARY KEY,
+      id           TEXT    PRIMARY KEY,
+      title        TEXT    NOT NULL,
       unit         TEXT,
       goal         REAL,
       currentValue REAL,
