@@ -54,7 +54,6 @@ class _HomePageState extends State<HomePage> {
   List<double> _monthlyValuesForCharts = [];
 
   // Placeholder data for challenges (kept if you want to show generic challenges too)
-  // CHANGED: Now contains only the 'Daily check-in' challenge.
   final List<Map<String, String>> _currentChallenges = [
     {
       'id': 'daily_eco_check_in',
@@ -66,27 +65,32 @@ class _HomePageState extends State<HomePage> {
 
   // User email for data fetching - now guaranteed to be non-null
   late String _userEmail;
-  late Future<List<CommunityMain>> _futureJoinedCommunityEvents; // Future for joined community events
+  // FIX: Initialize _futureJoinedCommunityEvents synchronously in initState
+  late Future<List<CommunityMain>> _futureJoinedCommunityEvents;
 
   @override
   void initState() {
     super.initState();
-    _initializeUserAndLoadData(); // Combined initialization and data loading
+    // This line ensures _futureJoinedCommunityEvents is initialized immediately.
+    _futureJoinedCommunityEvents = Future.value([]); // Initialize with an empty list Future.
+
+    _initializeUserAndLoadData(); // This will later assign the actual data-fetching future.
   }
 
   Future<void> _initializeUserAndLoadData() async {
     final user = FirebaseAuth.instance.currentUser;
-    // Assert that user and email are not null, as per your application's login guarantee
     assert(user != null && user.email != null, 'User must be logged in and have an email before accessing HomePage.');
 
     _userEmail = user!.email!; // Assign the user's email
-    // Load both habit data and community joined events
-    await _loadAllHabitsAndChartData();
-    _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail);
 
+    // Assign the actual future for community events here within setState.
+    // This causes the FutureBuilder to rebuild when the actual data fetching Future completes.
     setState(() {
-      // Update UI to reflect loading state or empty data
+      _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail);
     });
+
+    // Keep loading other habit data asynchronously
+    await _loadAllHabitsAndChartData();
   }
 
   Future<void> _loadAllHabitsAndChartData() async {
@@ -549,7 +553,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16.0),
             FutureBuilder<List<CommunityMain>>(
-              future: _futureJoinedCommunityEvents,
+              future: _futureJoinedCommunityEvents, // This is where the error is occurring
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -664,22 +668,29 @@ class _HomePageState extends State<HomePage> {
               _initializeUserAndLoadData();
             }
           } else if (index == 2) { // 'Community' is at index 2
-            Navigator.push(
+            final result = await Navigator.push( // Use result for community too
               context,
               MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
             );
+            if (result == true) {
+              _initializeUserAndLoadData(); // Refresh HomePage if changes occurred in community
+            }
           } else if (index == 3){ // 'Tips & Learning' is at index 3
-            Navigator.push(
+            final result = await Navigator.push( // Use result for tips too
               context,
               MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
             );
+            if (result == true) {
+              _initializeUserAndLoadData(); // Refresh HomePage if needed
+            }
           } else if (index == 4) { // 'Profile' is at index 4
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ProfilePage()), // Navigate to ProfilePage
             );
             if (result == true) {
-              // Reload all data when returning from ProfilePage (if needed)
+              // Reload all data on HomePage when returning from ProfilePage,
+              // as profile updates might affect displayed username, etc.
               _initializeUserAndLoadData();
             }
           }
@@ -688,3 +699,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+// ... (rest of the _HomePageState methods and helper widgets like _buildHabitProgressCard, _buildChallengeCard)
