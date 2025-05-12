@@ -20,6 +20,12 @@ import '../db/sqflite_steps_repository.dart';
 import 'monthly_bar_chart.dart';
 import '../screen/home.dart'; // Import your home.dart for navigation
 
+// Imports for Bottom Navigation Bar destinations
+import '../Willie/community_main.dart'; // For CommunityChallengesScreen
+import 'package:assignment_test/YenHan/pages/tips_education.dart'; // For TipsEducationScreen
+import '../screen/profile.dart'; // For ProfilePage
+
+
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);
 
@@ -56,6 +62,8 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
   int _selectedIndex = 1; // New state variable for the current tab index (1 for Track Habit)
 
+  bool _hasChanged = false; // NEW: Flag to indicate if any habit data has changed
+
   // ---------------------------------------------------------------------------
   @override
   void initState() {
@@ -63,11 +71,15 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     _scrollController = ScrollController();
     final currentUser = FirebaseAuth.instance.currentUser;
     user_email = currentUser?.email ?? 'unknown@example.com';
-    if (user_email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in.')),
-      );
-      Navigator.of(context).pop();
+    if (user_email == 'unknown@example.com') { // Use 'unknown@example.com' for check
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not logged in to access Habit Tracking.')),
+        );
+      });
       return;
     }
 
@@ -183,22 +195,26 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     });
   }
 
-  // Widget _buildMotivationalCard(int steps) {
-  //   String message;
-  //   if (steps >= 10000) {
-  //     message = '🎉 You have walked $steps steps today! Goal achieved, great! ';
-  //   } else if (steps >= 5000) {
-  //     message = '🚶‍♂️ Keep going! You have walked $steps steps, keep up the good work! ';
-  //   } else {
-  //     message = '🙂 You haven\'t moved much today, it\'s healthier to move~ You have walked $steps steps';
-  //   }
-
   // ---------------------------------------------------------------------------
   // DATA LOADERS
   // ---------------------------------------------------------------------------
   Future<void> _loadAllData() async {
     await _updateCurrentValues();
-    await _loadDataForSelectedHabit(_selectedHabitTitle!);
+    // Ensure _selectedHabitTitle is not null before calling _loadDataForSelectedHabit
+    if (_habits.isNotEmpty && _selectedHabitTitle == null) {
+      _selectedHabitTitle = _habits.first.title;
+    }
+    if (_selectedHabitTitle != null) {
+      await _loadDataForSelectedHabit(_selectedHabitTitle!);
+    } else {
+      // If no habits, clear chart data
+      setState(() {
+        _last7Labels = [];
+        _last7Values = [];
+        _monthlyLabels = [];
+        _monthlyValues = [];
+      });
+    }
   }
 
   Future<void> _updateCurrentValues() async {
@@ -222,8 +238,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _loadDataForSelectedHabit(String habitTitle) async {
-    // final isStep =
-    //     _habits.firstWhere((h) => h.title == habitTitle).usePedometer;
     final isStep = _habits.firstWhere(
           (h) => h.title == habitTitle,
       orElse: () => Habit(
@@ -335,8 +349,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
     final monthly = await _repo.fetchMonthlyTotals(user_email, habitTitle);
     setState(() {
-      _last7Labels = daily.keys.toList();
-      _last7Values = daily.values.toList();
       _monthlyTotals = monthly;
     });
     _prepareMonthlyChart();
@@ -402,6 +414,9 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
     // 3. Remove from database and UI:
     await _deleteHabitAndData(title, index);
+    setState(() { // NEW: Set flag on deletion
+      _hasChanged = true;
+    });
   }
 
   Future<void> _deleteHabitAndData(String title, int index) async {
@@ -486,28 +501,62 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       await _repo.upsertHabit(newHabit, user_email);
 
       // 2. reload lists & charts exactly once → UI refreshed, no duplicates
-      setState(() => _habits.add(newHabit));
+      setState(() {
+        _habits.add(newHabit);
+        _hasChanged = true; // NEW: Set flag on addition
+      });
 
       await _loadAllData();
-
     }
   }
 
   // ---------------------------------------------------------------------------
   // Bottom Navigation Bar Tap Handler
   // ---------------------------------------------------------------------------
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async { // Make async to use await for Navigator.pushReplacement
     setState(() {
       _selectedIndex = index;
     });
 
     if (index == 0) { // Home tab tapped
-      Navigator.pop(context); // Assumes TrackHabitScreen was pushed from HomePage
+      Navigator.pop(context, _hasChanged); // Pass _hasChanged flag to HomePage
     } else if (index == 1) {
       // Already on Track Habit screen, do nothing or refresh
       _loadAllData(); // Optional: refresh data if user taps current tab
+    } else if (index == 2) { // Community tab
+      final result = await Navigator.pushReplacement( // Use pushReplacement for bottom nav
+        context,
+        MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
+      );
+      // Handle result if CommunityChallengesScreen also returns true/false
+      if (result == true) {
+        setState(() {
+          _hasChanged = true; // If a change happened in community, propagate flag
+        });
+      }
+    } else if (index == 3) { // Tips & Learning tab
+      final result = await Navigator.pushReplacement( // Use pushReplacement for bottom nav
+        context,
+        MaterialPageRoute(builder: (context) => TipsEducationScreen()),
+      );
+      // Handle result if TipsEducationScreen also returns true/false
+      if (result == true) {
+        setState(() {
+          _hasChanged = true; // If a change happened in tips, propagate flag
+        });
+      }
+    } else if (index == 4) { // Profile tab
+      final result = await Navigator.pushReplacement( // Use pushReplacement for bottom nav
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
+      // Handle result if ProfilePage also returns true/false
+      if (result == true) {
+        setState(() {
+          _hasChanged = true; // If a change happened in profile, propagate flag
+        });
+      }
     }
-    // You can add navigation logic for other tabs (e.g., Community, Tips & Learning) here
   }
 
   Widget _buildMotivationalCard(int steps) {
@@ -640,17 +689,13 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            // InteractiveTrendChart(
-            //   values: _last7Values,
-            //   labels: _last7Labels,
-            // ),
             SizedBox(
               height: 120,
               child: SingleChildScrollView(
-                controller: _scrollController,          // ← 加上这一行
+                controller: _scrollController,
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                  width: _last7Values.length * 45.0,
+                  width: _last7Values.length * 45.0, // Adjust width based on number of values
                   child: InteractiveTrendChart(
                     values: _last7Values,
                     labels: _last7Labels,
@@ -778,7 +823,10 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                               await SyncService().pushEntry(entry);
                             }
                             await _repo.upsertHabit(updated, user_email);
-                            setState(() => _habits[index] = updated);
+                            setState(() {
+                              _habits[index] = updated;
+                              _hasChanged = true; // NEW: Set flag on habit edit
+                            });
                             await _loadAllData();
                           }
                         },
