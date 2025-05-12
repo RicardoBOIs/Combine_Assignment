@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/habit.dart';
+import '../models/check_in_challenge.dart';
 import '../services/database_helper.dart' as db_helper;
-import '../services/firestore_service.dart';
+import '../services/firestoreKK.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';

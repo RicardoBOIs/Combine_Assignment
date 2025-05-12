@@ -18,6 +18,8 @@ import '../../screen/track_habit_screen.dart'; // For navigation to the dedicate
 import '../screen/check_in_page.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
 import '../../Willie/community_main.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED THIS LINE FOR USER EMAIL
+
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -56,7 +58,8 @@ class _HomePageState extends State<HomePage> {
   ];
 
   // Placeholder user email (replace with actual authenticated user email)
-  final String _userEmail = 'alice@example.com';
+  // final String _userEmail = 'alice@example.com'; // <--- COMMENTED OUT OR REMOVE THIS LINE
+  final String _userEmail = FirebaseAuth.instance.currentUser?.email ?? 'anonymous_or_local_user'; // <--- REPLACED WITH THIS LINE
 
   @override
   void initState() {

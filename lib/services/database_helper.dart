@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-// Removed: import 'package:assignment_test/models/habit.dart'; // Not needed for this DatabaseHelper version
+// Removed: import 'package:assignment_test/models/check_in_challenge.dart'; // Not needed for this DatabaseHelper version
 // Removed: import 'dart:convert'; // Import for JSON encoding/decoding (not needed for minimal map)
 
 class DatabaseHelper {
