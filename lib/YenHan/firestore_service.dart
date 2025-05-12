@@ -31,6 +31,18 @@ class FirestoreService {
         .delete();
   }
 
+  /// Return the current list of admin e-mails
+  Future<List<String>> fetchAdminEmails() async {
+    final snap = await FirebaseFirestore.instance
+        .collection('Admin')
+        .doc('Email')
+        .collection('List')
+        .get();
+
+
+    return snap.docs.map((d) => d.id).toList();
+  }
+
   //Save Daily FootPrint
   Future<void> saveDailyFootprint(double kgCO2e) async {
     final user = _auth.currentUser;
