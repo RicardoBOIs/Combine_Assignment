@@ -51,9 +51,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   int _runningTotal = 0; // what we show & store
   int? _lastSavedSteps; // last value written to DB
 
-  // Add these two new members here:
   int _selectedIndex = 1; // New state variable for the current tab index (1 for Track Habit)
-  // ...
 
   // ---------------------------------------------------------------------------
   @override
@@ -178,6 +176,16 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       });
     });
   }
+
+  // Widget _buildMotivationalCard(int steps) {
+  //   String message;
+  //   if (steps >= 10000) {
+  //     message = '🎉 You have walked $steps steps today! Goal achieved, great! ';
+  //   } else if (steps >= 5000) {
+  //     message = '🚶‍♂️ Keep going! You have walked $steps steps, keep up the good work! ';
+  //   } else {
+  //     message = '🙂 You haven\'t moved much today, it\'s healthier to move~ You have walked $steps steps';
+  //   }
 
   // ---------------------------------------------------------------------------
   // DATA LOADERS
@@ -451,6 +459,60 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     // You can add navigation logic for other tabs (e.g., Community, Tips & Learning) here
   }
 
+  Widget _buildMotivationalCard(int steps) {
+    String message;
+    if (steps >= 10000) {
+      message = 'You have walked $steps steps today! Goal achieved, great! 🎉';
+    } else if (steps >= 5000) {
+      message = 'Keep going! You have walked $steps steps, keep up the good work! 🚶‍';
+    } else {
+      message = 'You haven\'t moved much today, it\'s healthier to move~ You have walked $steps steps. 👀';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/track_habit.jpg',
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.directions_walk, size: 32, color: Colors.green.shade700),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   // ---------------------------------------------------------------------------
   @override
@@ -539,11 +601,13 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
               labels: _monthlyLabels,
               values: _monthlyValues,
             ),
+            _buildMotivationalCard(_runningTotal)
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
+        mini: true,
+        child: const Icon(Icons.add, size: 32.0),
         tooltip: 'New Habit',
         onPressed: _showAddHabitDialog,
       ),
