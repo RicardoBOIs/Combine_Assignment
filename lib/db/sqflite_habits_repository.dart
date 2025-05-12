@@ -31,8 +31,9 @@ class SqfliteHabitsRepository implements HabitsRepository {
 
 
   @override
-  Future<List<HabitEntry>> fetchLast7Days(String user_email, String habitTitle) =>
-      _db.fetchLast7Days(user_email, habitTitle);
+  Future<List<HabitEntry>> fetchAllEntries(String user_email, String habitTitle) =>
+      DbHelper().fetchAllEntries(user_email, habitTitle);
+
 
   @override
   Future<List<HabitEntry>> fetchMonthlyTotals(String user_email, String habitTitle) =>
