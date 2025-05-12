@@ -221,14 +221,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
 
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ResetPage()),
-                ),
-                child: const Text('Forgot Password?'),
-              ),
+
             ],
           ),
         ),

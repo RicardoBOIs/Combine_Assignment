@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
-import '../screen/home.dart';
-import 'YenHan/pages/login_page.dart';
+
 import 'YenHan/tip_repository.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'db/db_helper.dart';
+import 'package:assignment_test/Welcome_Screen.dart';
 
 // Declare a global key for the Navigator
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -67,7 +66,7 @@ class MyApp extends StatelessWidget {
       ),
       // Assign the global navigatorKey to the MaterialApp
       navigatorKey: navigatorKey, // <--- ADD THIS LINE
-      home: const LoginPage(),
+      home: const WelcomePage(),
     );
   }
 }
