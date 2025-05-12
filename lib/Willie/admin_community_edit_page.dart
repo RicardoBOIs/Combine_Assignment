@@ -207,38 +207,7 @@ class _EditEventPageState extends State<EditEventPage> {
     }
   }
 
-  Future<void> _deleteEvent() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Event'),
-        content: const Text(
-            'Are you sure you want to delete this event and all its data?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      setState(() => _isSaving = true);
-      await _repo.deleteCommunity(widget.event.id!);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event deleted.'))
-        );
-        Navigator.pop(context, true);
-      }
-    }
-  }
+
 
   Widget _buildImagePicker() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,11 +274,6 @@ class _EditEventPageState extends State<EditEventPage> {
             )
                 : const Icon(Icons.save),
             onPressed: _isSaving ? null : _saveChanges,
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            tooltip: 'Delete Event',
-            onPressed: _isSaving ? null : _deleteEvent,
           ),
         ],
       ),

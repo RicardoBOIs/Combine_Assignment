@@ -64,4 +64,8 @@ class SqfliteHabitsRepository implements HabitsRepository {
   @override
   Future<List<Habit>> fetchHabits(String userEmail) =>
       _db.fetchHabits(userEmail);
+
+  @override
+  Future<void> deleteHabit(String userEmail, String title) =>
+      DbHelper().deleteHabit(userEmail, title);
 }

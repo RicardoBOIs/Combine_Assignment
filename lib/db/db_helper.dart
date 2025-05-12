@@ -102,6 +102,16 @@ class DbHelper {
     );
   }
 
+  /// 删除指定用户的某个习惯
+  Future<void> deleteHabit(String userEmail, String title) async {
+    final db = await database;
+    await db.delete(
+      'habits',
+      where: 'user_email = ? AND title = ?',
+      whereArgs: [userEmail, title],
+    );
+  }
+
   /// Inspect existing table and migrate only if 'date' is not TEXT.
   Future<void> _onConfigure(Database db) async {
     final info = await db.rawQuery("PRAGMA table_info('entries')");

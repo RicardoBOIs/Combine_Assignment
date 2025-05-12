@@ -96,15 +96,6 @@ class DatabaseService {
     CREATE UNIQUE INDEX idx_steps_day
       ON steps(day)
   ''');
-    final seed = [
-      {
-        'email': 'alice@example.com',
-        'username': 'Alice',
-        'phone': '012-3456789',
-        'location': 'Kuala Lumpur',
-      },
-    ];
-
 
   }
 }
