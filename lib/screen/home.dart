@@ -11,7 +11,8 @@ import 'package:uuid/uuid.dart';
 import '../../db/sqflite_habits_repository.dart';
 import '../../db/sqflite_steps_repository.dart'; // For fetching step data for charts
 import '../../screen/interactive_trend_chart.dart'; // The chart widget
-import '../../screen/monthly_bar_chart.dart'; // The chart widget
+// Removed import for monthly_bar_chart.dart as it is no longer used
+// import '../../screen/monthly_bar_chart.dart'; // The chart widget
 import '../../screen/track_habit_screen.dart'; // For navigation to the dedicated habit tracking screen
 import '../../screen/edit_habit_screen.dart'; // <--- Import EditHabitScreen for the FAB
 
@@ -49,9 +50,10 @@ class _HomePageState extends State<HomePage> {
   // Chart data
   List<String> _last7Labels = [];
   List<double> _last7Values = [];
-  List<HabitEntry> _monthlyTotalsForCharts = []; // Used to prepare monthly chart data
-  List<String> _monthlyLabelsForCharts = [];
-  List<double> _monthlyValuesForCharts = [];
+  // Removed monthly chart data variables as they are no longer used
+  // List<HabitEntry> _monthlyTotalsForCharts = []; // Used to prepare monthly chart data
+  // List<String> _monthlyLabelsForCharts = [];
+  // List<double> _monthlyValuesForCharts = [];
 
   // Placeholder data for challenges (kept if you want to show generic challenges too)
   final List<Map<String, String>> _currentChallenges = [
@@ -71,7 +73,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // This line ensures _futureJoinedCommunityEvents is initialized immediately.
+    // THIS LINE IS CRUCIAL: It initializes _futureJoinedCommunityEvents immediately.
     _futureJoinedCommunityEvents = Future.value([]); // Initialize with an empty list Future.
 
     _initializeUserAndLoadData(); // This will later assign the actual data-fetching future.
@@ -83,8 +85,8 @@ class _HomePageState extends State<HomePage> {
 
     _userEmail = user!.email!; // Assign the user's email
 
-    // Assign the actual future for community events here within setState.
-    // This causes the FutureBuilder to rebuild when the actual data fetching Future completes.
+    // This setState is important: it triggers a rebuild when the actual data-fetching
+    // future is assigned, causing the FutureBuilder to react.
     setState(() {
       _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail);
     });
@@ -111,8 +113,9 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _last7Labels = [];
         _last7Values = [];
-        _monthlyLabelsForCharts = [];
-        _monthlyValuesForCharts = [];
+        // Removed monthly chart data variable resets
+        // _monthlyLabelsForCharts = [];
+        // _monthlyValuesForCharts = [];
       });
     }
   }
@@ -175,15 +178,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Loads data for the InteractiveTrendChart and MonthlyBarChart for the selected habit
+  // Loads data for the InteractiveTrendChart for the selected habit
   Future<void> _loadChartDataForSelectedHabit(String habitTitle) async {
     // _userEmail is guaranteed non-null here
     if (_habits.isEmpty) {
       setState(() {
         _last7Labels = [];
         _last7Values = [];
-        _monthlyLabelsForCharts = [];
-        _monthlyValuesForCharts = [];
+        // Removed monthly chart data variable resets
+        // _monthlyLabelsForCharts = [];
+        // _monthlyValuesForCharts = [];
       });
       return;
     }
@@ -198,12 +202,13 @@ class _HomePageState extends State<HomePage> {
       final labels = last7.map((e) => DateFormat('yyyy-MM-dd').format(e.day)).toList();
       final values = last7.map((e) => e.count).toList();
 
-      final stepMonths = await stepsRepo.fetchMonthlyTotals(_userEmail);
-      _monthlyTotalsForCharts = stepMonths.map((e) => HabitEntry(
-        id: const Uuid().v4(), // Generate new UUID for this
-        user_email: e.user_email, habitTitle: habitTitle, date: e.day, value: e.count, createdAt: e.createdAt, updatedAt: e.updatedAt,
-      )).toList();
-      _prepareMonthlyChart();
+      // Removed monthly chart data fetching for step habits
+      // final stepMonths = await stepsRepo.fetchMonthlyTotals(_userEmail);
+      // _monthlyTotalsForCharts = stepMonths.map((e) => HabitEntry(
+      //   id: const Uuid().v4(), // Generate new UUID for this
+      //   user_email: e.user_email, habitTitle: habitTitle, date: e.day, value: e.count, createdAt: e.createdAt, updatedAt: e.updatedAt,
+      // )).toList();
+      // _prepareMonthlyChart(); // Removed call
 
       setState(() {
         _last7Labels = labels;
@@ -230,43 +235,26 @@ class _HomePageState extends State<HomePage> {
       }
       latestPerDay.forEach((k, e) => daily[k] = e.value);
 
-      _monthlyTotalsForCharts = await _habitsRepo.fetchMonthlyTotals(_userEmail, habitTitle);
-      _prepareMonthlyChart();
+      // Removed monthly chart data fetching for non-step habits
+      // _monthlyTotalsForCharts = await _habitsRepo.fetchMonthlyTotals(_userEmail, habitTitle);
+      // _prepareMonthlyChart(); // Removed call
+
+      // Assign labels and values for interactive trend chart
+      final dailyLabels = daily.keys.toList();
+      final dailyValues = daily.values.toList();
 
       setState(() {
-        _last7Labels = daily.keys.toList();
-        _last7Values = daily.values.toList();
+        _last7Labels = dailyLabels;
+        _last7Values = dailyValues;
+        // Removed monthly chart data variable assignments
+        // _monthlyLabelsForCharts = labels;
+        // _monthlyValuesForCharts = values;
       });
     }
   }
 
-  // Prepares data for the monthly bar chart based on _monthlyTotalsForCharts
-  void _prepareMonthlyChart() {
-    // Build a list of 13 months ending at the current month
-    final end = DateTime(DateTime.now().year, DateTime.now().month, 1);
-    final window = <DateTime>[];
-    for (int i = 12; i >= 0; i--) {
-      window.add(DateTime(end.year, end.month - i, 1));
-    }
+  // Removed _prepareMonthlyChart method entirely
 
-    final labels = window.map((dt) => DateFormat('MMM yy').format(dt)).toList();
-    final values = window.map((dt) {
-      final match = _monthlyTotalsForCharts.firstWhere(
-            (e) => e.date.year == dt.year && e.date.month == dt.month,
-        orElse: () => HabitEntry( // Provide a default if no entry for the month
-          id: const Uuid().v4(), // Generate new UUID for this
-          user_email: _userEmail, habitTitle: _selectedHabitForCharts,
-          date: dt, value: 0.0, createdAt: DateTime.now(), updatedAt: DateTime.now(),
-        ),
-      );
-      return match.value;
-    }).toList();
-
-    setState(() {
-      _monthlyLabelsForCharts = labels;
-      _monthlyValuesForCharts = values;
-    });
-  }
 
   // Date picker for the habits overview section
   Future<void> _pickDateForHabitsOverview() async {
@@ -405,14 +393,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              // TODO: Implement info button action
-            },
-          ),
-        ],
+        // Removed the info icon from the AppBar
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.info_outline),
+        //     onPressed: () {
+        //       // TODO: Implement info button action
+        //     },
+        //   ),
+        // ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -492,14 +481,14 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24.0),
 
 
-            // Habit Trends & Monthly Totals Section (THIRD ORDER)
+            // Habit Trends Section (THIRD ORDER)
             const Divider(), // Separator before this section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
-                    'Habit Trends & Monthly Totals',
+                    'Habit Trends (Last 7 Days)', // Updated title
                     style: theme.textTheme.titleLarge,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -523,24 +512,18 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             // Display trend chart only if a habit is selected and data is available
-            _selectedHabitForCharts != '-' && _habits.isNotEmpty
+            _selectedHabitForCharts != '-' && _habits.isNotEmpty && _last7Labels.isNotEmpty && _last7Values.isNotEmpty
                 ? InteractiveTrendChart(
-              values: _last7Values,
-              labels: _last7Labels,
-              // maxY: _habits.firstWhere((h) => h.title == _selectedHabitForCharts).goal,
+              labels: _last7Labels, // Correctly passing labels
+              values: _last7Values, // Correctly passing values
             )
                 : const SizedBox(
                 height: 120,
                 child: Center(child: Text('Select a habit to see trends'))),
-            const SizedBox(height: 24),
-            // Monthly Bar Chart
-            Text('Monthly Totals (Last 12 months)', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 12),
-            MonthlyBarChart(
-              labels: _monthlyLabelsForCharts,
-              values: _monthlyValuesForCharts,
-            ),
-            const SizedBox(height: 24.0), // Space after charts
+            const SizedBox(height: 24.0), // Space after chart
+
+            // Removed Monthly Bar Chart section entirely.
+
 
             // --- My Joined Community Events Section (LAST ORDER) ---
             Text(
@@ -553,7 +536,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16.0),
             FutureBuilder<List<CommunityMain>>(
-              future: _futureJoinedCommunityEvents, // This is where the error is occurring
+              future: _futureJoinedCommunityEvents,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -663,12 +646,12 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
             );
-            if (result == true) {
-              // Reload all data when returning from TrackHabitScreen
+            // MODIFIED: Check result to refresh HomePage
+            if (result == true) { // If TrackHabitScreen returned true, refresh
               _initializeUserAndLoadData();
             }
           } else if (index == 2) { // 'Community' is at index 2
-            final result = await Navigator.push( // Use result for community too
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
             );
@@ -676,7 +659,7 @@ class _HomePageState extends State<HomePage> {
               _initializeUserAndLoadData(); // Refresh HomePage if changes occurred in community
             }
           } else if (index == 3){ // 'Tips & Learning' is at index 3
-            final result = await Navigator.push( // Use result for tips too
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
             );
@@ -699,5 +682,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-// ... (rest of the _HomePageState methods and helper widgets like _buildHabitProgressCard, _buildChallengeCard)

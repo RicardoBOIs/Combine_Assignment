@@ -16,8 +16,12 @@ import 'interactive_trend_chart.dart';
 import 'edit_habit_screen.dart';
 import '../attr/step_entry.dart';
 import '../db/sqflite_steps_repository.dart';
-import 'monthly_bar_chart.dart';
+import 'monthly_bar_chart.dart'; // Make sure this import is correct if you still use monthly_bar_chart.dart for other purposes/widgets
 import '../screen/home.dart'; // Import your home.dart for navigation
+import '../Willie/community_main.dart'; // Assuming you also have a CommunityChallengesScreen for bottom nav
+import 'package:assignment_test/YenHan/pages/tips_education.dart'; // Assuming you have TipsEducationScreen for bottom nav
+import '../screen/profile.dart'; // Assuming you have ProfilePage for bottom nav
+
 
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);
@@ -54,19 +58,16 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
   int _selectedIndex = 1; // New state variable for the current tab index (1 for Track Habit)
 
+  bool _hasChanged = false; // Flag to indicate if any habit data has changed
+
   // ---------------------------------------------------------------------------
   @override
   void initState() {
     super.initState();
     final currentUser = FirebaseAuth.instance.currentUser;
-    user_email = currentUser?.email ?? 'unknown@example.com';
-    if (user_email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in.')),
-      );
-      Navigator.of(context).pop();
-      return;
-    }
+    // As per your clarification, currentUser and its email are guaranteed to be non-null here
+    user_email = currentUser!.email!;
+
 
     _selectedMonthlyEndDate = DateTime(
       DateTime.now().year,
@@ -179,22 +180,19 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     });
   }
 
-  // Widget _buildMotivationalCard(int steps) {
-  //   String message;
-  //   if (steps >= 10000) {
-  //     message = '🎉 You have walked $steps steps today! Goal achieved, great! ';
-  //   } else if (steps >= 5000) {
-  //     message = '🚶‍♂️ Keep going! You have walked $steps steps, keep up the good work! ';
-  //   } else {
-  //     message = '🙂 You haven\'t moved much today, it\'s healthier to move~ You have walked $steps steps';
-  //   }
-
   // ---------------------------------------------------------------------------
   // DATA LOADERS
   // ---------------------------------------------------------------------------
   Future<void> _loadAllData() async {
     await _updateCurrentValues();
-    await _loadDataForSelectedHabit(_selectedHabitTitle!);
+    // Ensure _selectedHabitTitle is not null before calling _loadDataForSelectedHabit
+    if (_selectedHabitTitle != null) {
+      await _loadDataForSelectedHabit(_selectedHabitTitle!);
+    } else if (_habits.isNotEmpty) {
+      // If no habit is selected, select the first one by default and load its data
+      _selectedHabitTitle = _habits.first.title;
+      await _loadDataForSelectedHabit(_selectedHabitTitle!);
+    }
   }
 
   Future<void> _updateCurrentValues() async {
@@ -218,8 +216,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _loadDataForSelectedHabit(String habitTitle) async {
-    // final isStep =
-    //     _habits.firstWhere((h) => h.title == habitTitle).usePedometer;
     final isStep = _habits.firstWhere(
           (h) => h.title == habitTitle,
       orElse: () => Habit(
@@ -260,7 +256,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
       setState(() {
         _last7Labels = labels;
         _last7Values = values;
-        _monthlyTotals = _monthlyTotals;
+        // _monthlyTotals = _monthlyTotals; // This line is redundant
       });
       return;
     }
@@ -355,6 +351,9 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
     // 3. Remove from database and UI:
     await _deleteHabitAndData(title, index);
+    setState(() {
+      _hasChanged = true; // Set flag on deletion
+    });
   }
 
   Future<void> _deleteHabitAndData(String title, int index) async {
@@ -440,9 +439,10 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
       // 2. reload lists & charts exactly once → UI refreshed, no duplicates
       setState(() => _habits.add(newHabit));
-
       await _loadAllData();
-
+      setState(() {
+        _hasChanged = true; // Set flag on addition
+      });
     }
   }
 
@@ -455,12 +455,27 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     });
 
     if (index == 0) { // Home tab tapped
-      Navigator.pop(context); // Assumes TrackHabitScreen was pushed from HomePage
+      // MODIFIED: Pop with _hasChanged flag to indicate if HomePage needs to refresh
+      Navigator.pop(context, _hasChanged);
     } else if (index == 1) {
       // Already on Track Habit screen, do nothing or refresh
       _loadAllData(); // Optional: refresh data if user taps current tab
+    } else if (index == 2) { // Community tab
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
+      );
+    } else if (index == 3) { // Tips & Learning tab
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => TipsEducationScreen()),
+      );
+    } else if (index == 4) { // Profile tab
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
     }
-    // You can add navigation logic for other tabs (e.g., Community, Tips & Learning) here
   }
 
   Widget _buildMotivationalCard(int steps) {
@@ -718,6 +733,9 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                             await _repo.upsertHabit(updated, user_email);
                             setState(() => _habits[index] = updated);
                             await _loadAllData();
+                            setState(() {
+                              _hasChanged = true; // Set flag on habit edit
+                            });
                           }
                         },
                       ),
