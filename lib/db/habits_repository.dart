@@ -3,7 +3,7 @@ import '../attr/habit.dart';
 
 abstract class HabitsRepository {
   Future<void> upsertEntry(HabitEntry entry);
-  Future<List<HabitEntry>> fetchLast7Days(String user_email, String habitTitle);
+  Future<List<HabitEntry>> fetchAllEntries(String userEmail, String habitTitle);
   Future<List<HabitEntry>> fetchMonthlyTotals(String user_email, String habitTitle);
   Future<void> clearEntries();
   Future<void> clearEntriesForHabit(String habitTitle);

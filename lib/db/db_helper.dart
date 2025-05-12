@@ -271,33 +271,26 @@ class DbHelper {
     print("✓ insert success, returned id: $id");
   }
 
-  // Fetch last 7 days for the given habit, parsing ISO strings back to DateTime.
-  Future<List<HabitEntry>> fetchLast7Days(
-    String user_email,
-    String habitTitle,
-  ) async {
+  Future<List<HabitEntry>> fetchAllEntries(
+      String user_email,
+      String habitTitle,
+      ) async {
     final db = await database;
-    final cutoff =
-        DateTime.now().subtract(const Duration(days: 6)).toIso8601String();
-
     final rows = await db.query(
       'entries',
-      where: 'user_email = ? AND habitTitle = ? AND date >= ?',
-      whereArgs: [user_email, habitTitle, cutoff],
+      where: 'user_email = ? AND habitTitle = ?',
+      whereArgs: [user_email, habitTitle],
       orderBy: 'date ASC',
     );
-
-    return rows.map((r) {
-      return HabitEntry(
-        id: r['id'] as String,
-        user_email: r['user_email'] as String,
-        habitTitle: r['habitTitle'] as String,
-        date: DateTime.parse(r['date'] as String),
-        value: (r['value'] as num).toDouble(),
-        createdAt: DateTime.parse(r['createdAt'] as String),
-        updatedAt: DateTime.parse(r['updatedAt'] as String),
-      );
-    }).toList();
+    return rows.map((r) => HabitEntry(
+      id        : r['id'] as String,
+      user_email: r['user_email'] as String,
+      habitTitle: r['habitTitle'] as String,
+      date      : DateTime.parse(r['date'] as String),
+      value     : (r['value'] as num).toDouble(),
+      createdAt : DateTime.parse(r['createdAt'] as String),
+      updatedAt : DateTime.parse(r['updatedAt'] as String),
+    )).toList();
   }
 
   // Group entries by month (YYYY-MM) and sum values.

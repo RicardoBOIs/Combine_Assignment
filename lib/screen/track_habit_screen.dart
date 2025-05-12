@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pedometer/pedometer.dart';
@@ -16,12 +17,8 @@ import 'interactive_trend_chart.dart';
 import 'edit_habit_screen.dart';
 import '../attr/step_entry.dart';
 import '../db/sqflite_steps_repository.dart';
-import 'monthly_bar_chart.dart'; // Make sure this import is correct if you still use monthly_bar_chart.dart for other purposes/widgets
+import 'monthly_bar_chart.dart';
 import '../screen/home.dart'; // Import your home.dart for navigation
-import '../Willie/community_main.dart'; // Assuming you also have a CommunityChallengesScreen for bottom nav
-import 'package:assignment_test/YenHan/pages/tips_education.dart'; // Assuming you have TipsEducationScreen for bottom nav
-import '../screen/profile.dart'; // Assuming you have ProfilePage for bottom nav
-
 
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);
@@ -34,6 +31,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   late String user_email;   //sample user email
   final HabitsRepository _repo = SqfliteHabitsRepository();
   late List<Habit> _habits=[];
+  late final ScrollController _scrollController;
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedHabitTitle;
@@ -58,16 +56,20 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
   int _selectedIndex = 1; // New state variable for the current tab index (1 for Track Habit)
 
-  bool _hasChanged = false; // Flag to indicate if any habit data has changed
-
   // ---------------------------------------------------------------------------
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     final currentUser = FirebaseAuth.instance.currentUser;
-    // As per your clarification, currentUser and its email are guaranteed to be non-null here
-    user_email = currentUser!.email!;
-
+    user_email = currentUser?.email ?? 'unknown@example.com';
+    if (user_email == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
 
     _selectedMonthlyEndDate = DateTime(
       DateTime.now().year,
@@ -102,6 +104,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   @override
   void dispose() {
     _stepSub?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -171,7 +174,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
       await SqfliteStepsRepository().upsert(stepEntry);
 
-      final last7 = await SqfliteStepsRepository().fetchLast7Days(user_email);
+      final last7 = await SqfliteStepsRepository().fetchAllSteps(user_email);
       setState(() {
         _last7Labels =
             last7.map((e) => DateFormat('yyyy-MM-dd').format(e.day)).toList();
@@ -180,19 +183,22 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     });
   }
 
+  // Widget _buildMotivationalCard(int steps) {
+  //   String message;
+  //   if (steps >= 10000) {
+  //     message = '🎉 You have walked $steps steps today! Goal achieved, great! ';
+  //   } else if (steps >= 5000) {
+  //     message = '🚶‍♂️ Keep going! You have walked $steps steps, keep up the good work! ';
+  //   } else {
+  //     message = '🙂 You haven\'t moved much today, it\'s healthier to move~ You have walked $steps steps';
+  //   }
+
   // ---------------------------------------------------------------------------
   // DATA LOADERS
   // ---------------------------------------------------------------------------
   Future<void> _loadAllData() async {
     await _updateCurrentValues();
-    // Ensure _selectedHabitTitle is not null before calling _loadDataForSelectedHabit
-    if (_selectedHabitTitle != null) {
-      await _loadDataForSelectedHabit(_selectedHabitTitle!);
-    } else if (_habits.isNotEmpty) {
-      // If no habit is selected, select the first one by default and load its data
-      _selectedHabitTitle = _habits.first.title;
-      await _loadDataForSelectedHabit(_selectedHabitTitle!);
-    }
+    await _loadDataForSelectedHabit(_selectedHabitTitle!);
   }
 
   Future<void> _updateCurrentValues() async {
@@ -216,6 +222,8 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _loadDataForSelectedHabit(String habitTitle) async {
+    // final isStep =
+    //     _habits.firstWhere((h) => h.title == habitTitle).usePedometer;
     final isStep = _habits.firstWhere(
           (h) => h.title == habitTitle,
       orElse: () => Habit(
@@ -229,58 +237,101 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     ).usePedometer;
 
     if (isStep) {
-      _selectedDate = DateTime.now();
+      // 1. 拉取所有步数
+      final all = await SqfliteStepsRepository().fetchAllSteps(user_email);
+      final fmt = DateFormat('yyyy-MM-dd');
+      final daily = <String, double>{};
 
-      final last7 = await SqfliteStepsRepository().fetchLast7Days(user_email);
-      final labels =
-      last7.map((e) => DateFormat('yyyy-MM-dd').format(e.day)).toList();
-      final values = last7.map((e) => e.count).toList();
+      if (all.isEmpty) {
+        // 如果还没任何记录，就今天一条 0
+        daily[fmt.format(DateTime.now())] = 0.0;
+      } else {
+        // 按日期升序找到第一天和今天
+        all.sort((a, b) => a.day.compareTo(b.day));
+        final first = all.first.day;
+        final today = DateTime.now();
 
-      final stepMonths = await SqfliteStepsRepository().fetchMonthlyTotals(user_email);
-      _monthlyTotals =
-          stepMonths
-              .map(
-                (e) => HabitEntry(
-              id: e.id,
-              user_email: e.user_email,
-              habitTitle: habitTitle,
-              date: e.day,
-              value: e.count,
-              createdAt: e.createdAt,
-              updatedAt: e.updatedAt,
-            ),
-          )
-              .toList();
-      _prepareMonthlyChart();
+        // 2. 生成从 first 到 today 的每一天，初始值 0
+        for (var d = first;
+        !d.isAfter(today);
+        d = d.add(const Duration(days: 1))) {
+          daily[fmt.format(d)] = 0.0;
+        }
 
+        // 3. 用最新 count 覆盖
+        for (final e in all) {
+          final key = fmt.format(e.day);
+          if (daily.containsKey(key)) {
+            daily[key] = max(daily[key]!, e.count);
+          }
+        }
+      }
+
+      // 4. 更新 state，并自动滚到最右（“今天”）
       setState(() {
-        _last7Labels = labels;
-        _last7Values = values;
-        // _monthlyTotals = _monthlyTotals; // This line is redundant
+        _last7Labels = daily.keys.toList();
+        _last7Values = daily.values.toList();
       });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+
+      // 最后再调月度统计
+      final stepMonths = await SqfliteStepsRepository().fetchMonthlyTotals(user_email);
+      _monthlyTotals = stepMonths.map((e) => HabitEntry(
+        id        : e.id,
+        user_email: e.user_email,
+        habitTitle: habitTitle,
+        date      : e.day,
+        value     : e.count,
+        createdAt : e.createdAt,
+        updatedAt : e.updatedAt,
+      )).toList();
+      _prepareMonthlyChart();
       return;
     }
 
     // ── Else: existing ‘entries’ logic
-    final entries = await _repo.fetchRange(user_email, habitTitle, _selectedDate);
+    final entries = await _repo.fetchAllEntries(user_email, habitTitle);
     final fmt = DateFormat('yyyy-MM-dd');
     final daily = <String, double>{};
 
-    // init last 7 calendar days
-    for (var i = 0; i < 7; i++) {
-      final d = _selectedDate.subtract(Duration(days: 6 - i));
-      daily[fmt.format(d)] = 0.0;
-    }
-    // sum up the latest-per-day (your existing fix)
-    final latestPerDay = <String, HabitEntry>{};
-    for (final e in entries) {
-      final k = fmt.format(e.date);
-      if (!latestPerDay.containsKey(k) ||
-          e.updatedAt.isAfter(latestPerDay[k]!.updatedAt)) {
-        latestPerDay[k] = e;
+    if (entries.isEmpty) {
+      daily[fmt.format(DateTime.now())] = 0.0;
+    } else {
+      entries.sort((a, b) => a.date.compareTo(b.date));
+      final first = entries.first.date;
+      final today = DateTime.now();
+
+      for (var d = first;
+      !d.isAfter(today);
+      d = d.add(const Duration(days: 1))) {
+        daily[fmt.format(d)] = 0.0;
+      }
+
+      for (final e in entries) {
+        final key = fmt.format(e.date);
+        if (daily.containsKey(key)) {
+          daily[key] = max(
+            daily[key]!,
+            e.value,
+          );
+        }
       }
     }
-    latestPerDay.forEach((k, e) => daily[k] = e.value);
+
+    setState(() {
+      _last7Labels = daily.keys.toList();
+      _last7Values = daily.values.toList();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+
 
     final monthly = await _repo.fetchMonthlyTotals(user_email, habitTitle);
     setState(() {
@@ -351,9 +402,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
     // 3. Remove from database and UI:
     await _deleteHabitAndData(title, index);
-    setState(() {
-      _hasChanged = true; // Set flag on deletion
-    });
   }
 
   Future<void> _deleteHabitAndData(String title, int index) async {
@@ -439,10 +487,9 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
 
       // 2. reload lists & charts exactly once → UI refreshed, no duplicates
       setState(() => _habits.add(newHabit));
+
       await _loadAllData();
-      setState(() {
-        _hasChanged = true; // Set flag on addition
-      });
+
     }
   }
 
@@ -455,27 +502,12 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
     });
 
     if (index == 0) { // Home tab tapped
-      // MODIFIED: Pop with _hasChanged flag to indicate if HomePage needs to refresh
-      Navigator.pop(context, _hasChanged);
+      Navigator.pop(context); // Assumes TrackHabitScreen was pushed from HomePage
     } else if (index == 1) {
       // Already on Track Habit screen, do nothing or refresh
       _loadAllData(); // Optional: refresh data if user taps current tab
-    } else if (index == 2) { // Community tab
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
-      );
-    } else if (index == 3) { // Tips & Learning tab
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => TipsEducationScreen()),
-      );
-    } else if (index == 4) { // Profile tab
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePage()),
-      );
     }
+    // You can add navigation logic for other tabs (e.g., Community, Tips & Learning) here
   }
 
   Widget _buildMotivationalCard(int steps) {
@@ -586,7 +618,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text( '7 days habits', style: theme.textTheme.titleLarge),
+                Text( 'Habit Progress', style: theme.textTheme.titleLarge),
                 DropdownButton<String>(
                   value: _selectedHabitTitle,
                   items:
@@ -608,10 +640,25 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            InteractiveTrendChart(
-              values: _last7Values,
-              labels: _last7Labels,
+            // InteractiveTrendChart(
+            //   values: _last7Values,
+            //   labels: _last7Labels,
+            // ),
+            SizedBox(
+              height: 120,
+              child: SingleChildScrollView(
+                controller: _scrollController,          // ← 加上这一行
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: _last7Values.length * 45.0,
+                  child: InteractiveTrendChart(
+                    values: _last7Values,
+                    labels: _last7Labels,
+                  ),
+                ),
+              ),
             ),
+
             const SizedBox(height: 24),
             Text('Monthly Totals (Last 12 months)',
                 style: theme.textTheme.titleLarge),
@@ -733,9 +780,6 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
                             await _repo.upsertHabit(updated, user_email);
                             setState(() => _habits[index] = updated);
                             await _loadAllData();
-                            setState(() {
-                              _hasChanged = true; // Set flag on habit edit
-                            });
                           }
                         },
                       ),

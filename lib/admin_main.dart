@@ -104,7 +104,7 @@ class AdminMain extends StatelessWidget {
   }
 }
 
- // A lightweight page that lists current admins, lets you add one,
+ // A lightweight page that lists current admins
  // and remove any entry directly from Firestore.
 
 class _AdminsManager extends StatefulWidget {
@@ -205,7 +205,30 @@ class _AdminsManagerState extends State<_AdminsManager> {
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () async {
-                    await _svc.removeAdmin(email);
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Confirm Delete'),
+                          content: const Text('Are you sure you want to delete this admin?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Confirm'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (confirmed == true) {
+                      await _svc.removeAdmin(email);
+                    }
                   },
                 ),
               );

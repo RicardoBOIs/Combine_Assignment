@@ -30,16 +30,22 @@ class SqfliteStepsRepository {
   }
 
 
-  Future<List<StepEntry>> fetchLast7Days(String user_email) async {
-    final db = await _db.database;
-    final cutoff = DateTime.now().subtract(const Duration(days: 6));
+  Future<List<StepEntry>> fetchAllSteps(String userEmail) async {
+    final db = await DbHelper().database;
     final rows = await db.query(
       'steps',
-      where: 'user_email = ? AND day >= ?',
-      whereArgs: [user_email, cutoff.toIso8601String().substring(0, 10)],
+      where: 'user_email = ?',
+      whereArgs: [userEmail],
       orderBy: 'day ASC',
     );
-    return rows.map((r) => StepEntry.fromMap(r)).toList();
+    return rows.map((r) => StepEntry(
+      id        : r['id'] as String,
+      user_email: r['user_email'] as String,
+      day       : DateTime.parse(r['day'] as String),
+      count     : (r['count'] as num).toDouble(),
+      createdAt : DateTime.parse(r['createdAt'] as String),
+      updatedAt : DateTime.parse(r['updatedAt'] as String),
+    )).toList();
   }
 
   /// Returns a list of StepEntry with one record per month (last 6 months).

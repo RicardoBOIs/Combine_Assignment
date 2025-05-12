@@ -11,6 +11,7 @@ import 'package:assignment_test/YenHan/Databases/CarbonFootPrintDao.dart';
 import '../../screen/track_habit_screen.dart';
 import 'package:assignment_test/Willie/community_main.dart';
 import 'package:assignment_test/screen/profile.dart';
+import 'package:assignment_test/YenHan/pages/carbon_history.dart';
 
 String _selectedRegion = 'MY';
 
@@ -286,7 +287,18 @@ class _TipsEducationScreenState extends State<TipsEducationScreen> {
               fontWeight: FontWeight.bold,
             )
         ),
-
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history, color: Colors.green.shade700),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CarbonHistoryScreen()),
+              );
+            },
+            tooltip: 'View History',
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async{
