@@ -144,7 +144,7 @@ class _HomePageState extends State<HomePage> {
       if (h.usePedometer) {
         // For pedometer habits, fetch the specific day's step count
         final stepsRepo = SqfliteStepsRepository();
-        final last7StepEntries = await stepsRepo.fetchLast7Days(_userEmail);
+        final last7StepEntries = await stepsRepo.fetchAllSteps(_userEmail);
         final stepsForSelectedDate = last7StepEntries.firstWhere(
               (entry) => DateFormat('yyyy-MM-dd').format(entry.day) == key,
           orElse: () => StepEntry(
