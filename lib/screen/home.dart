@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For DateFormat
+import 'dart:io'; // For File.existsSync() for image paths
 
-// Assuming these are in your lib/ directory or a subfolder relative to home.dart
 // Adjust paths if your file structure is different.
 import '../../attr/habit.dart'; // The Habit model used by track_habit_screen
 import '../../attr/habit_entry.dart'; // The HabitEntry model (for chart data processing)
@@ -18,8 +18,19 @@ import '../../screen/edit_habit_screen.dart'; // <--- Import EditHabitScreen for
 // Assuming you have this page for check-ins based on previous context
 import '../screen/check_in_page.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
-import '../../Willie/community_main.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // <--- ADDED THIS LINE FOR USER EMAIL
+
+// Community Module Imports
+import '../../Willie/community_main.dart'; // For CommunityChallengesScreen and EventDetailScreen
+import '../../Willie/community_main_model.dart'; // For CommunityMain model
+import '../../Willie/community_repository_service.dart'; // For fetching community data
+import '../../Willie/join_event_model.dart'; // For checking join status
+import '../../Willie/community_leaderboard.dart'; // Optional: If you want to link directly to a leaderboard from here
+
+import 'package:firebase_auth/firebase_auth.dart'; // For FirebaseAuth.instance.currentUser
+
+// NEW: Import your ProfilePage
+import '../screen/profile.dart'; // <--- Adjust path if profile.dart is in a different location
+
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -30,6 +41,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HabitsRepository _habitsRepo = SqfliteHabitsRepository();
+  final RepositoryService _communityRepo = RepositoryService.instance; // Instance for community data
   List<Habit> _habits = []; // List of all tracked habits
   String _selectedHabitForCharts = '-'; // Currently selected habit for trend/monthly charts
   DateTime _selectedDateForHabitsOverview = DateTime.now(); // Date for displaying habit current values
@@ -41,7 +53,8 @@ class _HomePageState extends State<HomePage> {
   List<String> _monthlyLabelsForCharts = [];
   List<double> _monthlyValuesForCharts = [];
 
-  // Placeholder data for challenges (keep this if challenges are distinct from habits)
+  // Placeholder data for challenges (kept if you want to show generic challenges too)
+  // CHANGED: Now contains only the 'Daily check-in' challenge.
   final List<Map<String, String>> _currentChallenges = [
     {
       'id': 'daily_eco_check_in',
@@ -49,40 +62,48 @@ class _HomePageState extends State<HomePage> {
       'description': 'Check-in for planting your own tree',
       'image': 'assets/planting.jpg', // Ensure this asset exists in your pubspec.yaml
     },
-    {
-      'id': 'mountain_hike',
-      'name': 'Mountain Hike',
-      'description': 'Challenge yourself with a mountain hike.',
-      'image': 'assets/planting.jpg', // Ensure this asset exists in your pubspec.yaml
-    },
-    // Add more challenges here
   ];
 
-  // Placeholder user email (replace with actual authenticated user email)
-  final String _userEmail = FirebaseAuth.instance.currentUser?.email ?? 'anonymous_or_local_user'; // <--- REPLACED WITH THIS LINE
+  // User email for data fetching - now guaranteed to be non-null
+  late String _userEmail;
+  late Future<List<CommunityMain>> _futureJoinedCommunityEvents; // Future for joined community events
 
   @override
   void initState() {
     super.initState();
-    _loadAllHabitsAndChartData();
+    _initializeUserAndLoadData(); // Combined initialization and data loading
+  }
+
+  Future<void> _initializeUserAndLoadData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    // Assert that user and email are not null, as per your application's login guarantee
+    assert(user != null && user.email != null, 'User must be logged in and have an email before accessing HomePage.');
+
+    _userEmail = user!.email!; // Assign the user's email
+    // Load both habit data and community joined events
+    await _loadAllHabitsAndChartData();
+    _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail);
+
+    setState(() {
+      // Update UI to reflect loading state or empty data
+    });
   }
 
   Future<void> _loadAllHabitsAndChartData() async {
+    // _userEmail is guaranteed non-null here due to _initializeUserAndLoadData
     final fetchedHabits = await _habitsRepo.fetchHabits(_userEmail);
     setState(() {
       _habits = fetchedHabits;
       if (_habits.isNotEmpty) {
-        // Set default selected habit for charts to the first habit
         _selectedHabitForCharts = _habits.first.title;
       } else {
         _selectedHabitForCharts = '-'; // No habits to select
       }
     });
-    await _updateAllHabitCurrentValues(); // Update values for all habits based on _selectedDateForHabitsOverview
+    await _updateAllHabitCurrentValues();
     if (_habits.isNotEmpty && _selectedHabitForCharts != '-') {
       await _loadChartDataForSelectedHabit(_selectedHabitForCharts);
     } else {
-      // Clear chart data if no habits are available
       setState(() {
         _last7Labels = [];
         _last7Values = [];
@@ -92,8 +113,27 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // New method to load joined community events
+  Future<List<CommunityMain>> _loadJoinedCommunityEvents(String email) async {
+    final joins = await _communityRepo.getJoinsForUser(email);
+    final joinedEventIds = joins
+        .where((j) => j.status == 'joined')
+        .map((j) => j.communityID)
+        .toSet();
+
+    if (joinedEventIds.isEmpty) {
+      return [];
+    }
+
+    // This will try Firestore first, then fallback to SQLite
+    final allCommunities = await _communityRepo.getCommunities();
+    return allCommunities.where((c) => joinedEventIds.contains(c.id)).toList();
+  }
+
+
   // Fetches and updates the currentValue for all habits based on _selectedDateForHabitsOverview
   Future<void> _updateAllHabitCurrentValues() async {
+    // _userEmail is guaranteed non-null here
     final key = DateFormat('yyyy-MM-dd').format(_selectedDateForHabitsOverview);
     for (var i = 0; i < _habits.length; i++) {
       final h = _habits[i];
@@ -133,8 +173,8 @@ class _HomePageState extends State<HomePage> {
 
   // Loads data for the InteractiveTrendChart and MonthlyBarChart for the selected habit
   Future<void> _loadChartDataForSelectedHabit(String habitTitle) async {
+    // _userEmail is guaranteed non-null here
     if (_habits.isEmpty) {
-      // No habits to load charts for
       setState(() {
         _last7Labels = [];
         _last7Values = [];
@@ -277,7 +317,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Helper method to build a Challenge Card (existing logic)
+  // Helper method to build a Challenge Card (existing logic for static challenges)
   Widget _buildChallengeCard(Map<String, String> challenge) {
     return Card(
       elevation: 2.0,
@@ -335,7 +375,7 @@ class _HomePageState extends State<HomePage> {
                 else
                   OutlinedButton(
                     onPressed: () {
-                      // TODO: Implement Join Challenge action
+                      // TODO: Implement Join Challenge action for static challenges
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.green,
@@ -375,7 +415,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Bar
+            // Search Bar (Remains at the top)
             TextField(
               decoration: InputDecoration(
                 hintText: 'Search challenges...',
@@ -390,7 +430,29 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 24.0),
 
-            // Habit Tracking Overview Section (now showing actual habits)
+            // --- Daily Check-in Section (NEW FIRST ORDER) ---
+            const Text(
+              'Daily Check-in', // Changed the title
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _currentChallenges.length,
+              itemBuilder: (context, index) {
+                final challenge = _currentChallenges[index];
+                return _buildChallengeCard(challenge);
+              },
+            ),
+            const SizedBox(height: 24.0),
+            // --- End of Daily Check-in Section ---
+
+
+            // Habit Tracking Overview Section (SECOND ORDER)
             const Text(
               'Habit Tracking Overview',
               style: TextStyle(
@@ -425,36 +487,17 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 24.0),
 
-            // Current Challenges Section (existing)
-            const Text(
-              'Current Challenges',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16.0),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _currentChallenges.length,
-              itemBuilder: (context, index) {
-                final challenge = _currentChallenges[index];
-                return _buildChallengeCard(challenge);
-              },
-            ),
-            const SizedBox(height: 24.0),
 
-            // Habit Trends & Monthly Totals Section (newly integrated)
-            const Divider(),
+            // Habit Trends & Monthly Totals Section (THIRD ORDER)
+            const Divider(), // Separator before this section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded( // <--- WRAP THE TEXT WIDGET WITH Expanded
+                Expanded(
                   child: Text(
                     'Habit Trends & Monthly Totals',
                     style: theme.textTheme.titleLarge,
-                    overflow: TextOverflow.ellipsis, // Optional: to handle very long text by adding "..."
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 DropdownButton<String>(
@@ -493,10 +536,93 @@ class _HomePageState extends State<HomePage> {
               labels: _monthlyLabelsForCharts,
               values: _monthlyValuesForCharts,
             ),
+            const SizedBox(height: 24.0), // Space after charts
+
+            // --- My Joined Community Events Section (LAST ORDER) ---
+            Text(
+              'My Joined Community Events',
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.green.shade800,
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            FutureBuilder<List<CommunityMain>>(
+              future: _futureJoinedCommunityEvents,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error loading events: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        'You haven\'t joined any community events yet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+                      ),
+                    ),
+                  );
+                } else {
+                  final joinedEvents = snapshot.data!;
+                  final fmt = DateFormat('MMM d, HH:mm'); // Date format for display
+                  return ListView.separated(
+                    shrinkWrap: true, // Important for ListView inside Column/SingleChildScrollView
+                    physics: const NeverScrollableScrollPhysics(), // Disable ListView's own scrolling
+                    itemCount: joinedEvents.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final event = joinedEvents[index];
+                      final img = (event.imagePath != null && File(event.imagePath!).existsSync())
+                          ? Image.file(File(event.imagePath!), fit: BoxFit.cover)
+                          : Image.asset('assets/images/default.jpg', fit: BoxFit.cover);
+
+                      return Card(
+                        elevation: 2,
+                        margin: EdgeInsets.zero, // Remove default margin
+                        child: ListTile(
+                          leading: SizedBox(width: 60, height: 60, child: ClipRRect(borderRadius: BorderRadius.circular(8), child: img)),
+                          title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                            'Ends: ${fmt.format(event.endDate)}\n${event.shortDescription}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
+                            onPressed: () {
+                              // Navigate to EventDetailScreen
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EventDetailScreen(
+                                    community: event,
+                                    email: _userEmail, // Pass current user email
+                                    joined: true, // Assuming it's joined if in this list
+                                    joinCount: 0, // Placeholder, fetch if needed in detail screen
+                                    onJoinConfirmed: () => setState(() => _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail)),
+                                    onExitConfirmed: () => setState(() => _futureJoinedCommunityEvents = _loadJoinedCommunityEvents(_userEmail)),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 24.0),
+            // --- End of My Joined Community Events Section ---
           ],
         ),
       ),
-      // Placeholder for Bottom Navigation Bar (as seen in the image)
+      // Placeholder for Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -517,7 +643,7 @@ class _HomePageState extends State<HomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline), // Example icon
-            label: 'Profile',
+            label: 'Profile', // Label for the new Profile page
           ),
         ],
         currentIndex: 0, // Highlight the Home item by default
@@ -525,27 +651,37 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey, // Color for unselected items
         showUnselectedLabels: true, // Show labels for unselected items
         type: BottomNavigationBarType.fixed, // Ensures items are fixed width
-        onTap: (index) async { // Made onTap async to await push
+        onTap: (index) async {
           if (index == 0) {
             // Already on Home page, maybe do nothing or refresh
           } else if (index == 1) { // 'Track Habit' is at index 1
-            final result = await Navigator.push( // <--- MODIFIED NAVIGATION
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const TrackHabitScreen()),
             );
             if (result == true) {
-              _loadAllHabitsAndChartData(); // Reload data for HomePage
+              // Reload all data when returning from TrackHabitScreen
+              _initializeUserAndLoadData();
             }
-          }else if (index == 2) {
+          } else if (index == 2) { // 'Community' is at index 2
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CommunityChallengesScreen()),
             );
-          } else if (index==3){
+          } else if (index == 3){ // 'Tips & Learning' is at index 3
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TipsEducationScreen() ),
             );
+          } else if (index == 4) { // 'Profile' is at index 4
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()), // Navigate to ProfilePage
+            );
+            if (result == true) {
+              // Reload all data when returning from ProfilePage (if needed)
+              _initializeUserAndLoadData();
+            }
           }
         },
       ),

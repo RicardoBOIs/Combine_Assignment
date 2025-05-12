@@ -55,6 +55,27 @@ class FirestoreService {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+  Future<Map<String, dynamic>?> fetchUserProfile(String? email) async {
+    if (email == null) {
+      print('Email is null, cannot fetch user profile.');
+      return null;
+    }
 
+    try {
+      final docSnapshot = await _db
+          .collection('Registered_users')
+          .doc(email)
+          .get();
+
+      if (docSnapshot.exists) {
+        return docSnapshot.data();
+      } else {
+        return null; // User profile not found
+      }
+    } catch (e) {
+      print('Error fetching user profile for $email: $e');
+      rethrow; // Re-throw the exception so the calling widget can handle it
+    }
+  }
 
 }
