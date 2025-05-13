@@ -101,6 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
           phone: _phoneController.text,
           location: _locationController.text,
         );
+        await _userDao.updateProfile(email:_emailController.text,username:_nameController.text,phone:_phoneController.text,location:_locationController.text);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),
         );
