@@ -5,7 +5,7 @@ import 'db_helper.dart';
 import '../attr/habit_entry.dart';
 import '../main.dart';
 import 'package:flutter/material.dart';
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 void _showStatus(String message) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     final ctx = navigatorKey.currentContext;

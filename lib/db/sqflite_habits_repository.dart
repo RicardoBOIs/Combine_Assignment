@@ -3,7 +3,7 @@ import 'habits_repository.dart';
 import 'db_helper.dart';
 import '../attr/habit_entry.dart';
 import '../attr/habit.dart';
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 
 class SqfliteHabitsRepository implements HabitsRepository {
   final _db = DatabaseService();

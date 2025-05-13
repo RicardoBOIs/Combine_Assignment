@@ -21,10 +21,10 @@ import 'monthly_bar_chart.dart';
 import '../screen/home.dart'; // Import your home.dart for navigation
 
 // Imports for Bottom Navigation Bar destinations
-import '../Willie/community_main.dart'; // For CommunityChallengesScreen
+import '../Community/community_main.dart'; // For CommunityChallengesScreen
 import 'package:assignment_test/YenHan/pages/tips_education.dart'; // For TipsEducationScreen
 import '../screen/profile.dart'; // For ProfilePage
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);

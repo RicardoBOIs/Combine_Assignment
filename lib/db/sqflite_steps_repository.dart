@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'db_helper.dart';
 import '../attr/step_entry.dart';
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 class SqfliteStepsRepository {
   final _db = DatabaseService();
 

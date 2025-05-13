@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 
 class FootprintDao {
   final _db = DatabaseService();

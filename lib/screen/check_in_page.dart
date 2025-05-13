@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart'; // For status bar styling
 import 'package:firebase_auth/firebase_auth.dart'; // For FirebaseAuth.instance.currentUser
-import 'package:assignment_test/Willie/community_database_service.dart';
+import 'package:assignment_test/Community/community_database_service.dart';
 class CheckInPage extends StatefulWidget {
   final String challengeId; // This can still be used for things like the Hero tag, or removed if no longer needed anywhere.
   final String challengeName;

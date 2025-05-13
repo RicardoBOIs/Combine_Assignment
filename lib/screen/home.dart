@@ -21,11 +21,11 @@ import '../screen/check_in_page.dart';
 import 'package:assignment_test/YenHan/pages/tips_education.dart';
 
 // Community Module Imports
-import '../../Willie/community_main.dart'; // For CommunityChallengesScreen and EventDetailScreen
-import '../../Willie/community_main_model.dart'; // For CommunityMain model
-import '../../Willie/community_repository_service.dart'; // For fetching community data
-import '../../Willie/join_event_model.dart'; // For checking join status
-import '../../Willie/community_leaderboard.dart'; // Optional: If you want to link directly to a leaderboard from here
+import '../../Community/community_main.dart'; // For CommunityChallengesScreen and EventDetailScreen
+import '../../Community/community_main_model.dart'; // For CommunityMain model
+import '../../Community/community_repository_service.dart'; // For fetching community data
+import '../../Community/join_event_model.dart'; // For checking join status
+import '../../Community/community_leaderboard.dart'; // Optional: If you want to link directly to a leaderboard from here
 
 import 'package:firebase_auth/firebase_auth.dart'; // For FirebaseAuth.instance.currentUser
 
