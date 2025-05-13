@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/check_in_challenge.dart'; // This model might still be relevant for other parts of your app
-import '../services/database_helper.dart' as db_helper; // Updated for no habitId
 import '../services/firestoreKK.dart'; // Updated for no habitId in paths
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart'; // For status bar styling
 import 'package:firebase_auth/firebase_auth.dart'; // For FirebaseAuth.instance.currentUser
-
+import 'package:assignment_test/Willie/community_database_service.dart';
 class CheckInPage extends StatefulWidget {
   final String challengeId; // This can still be used for things like the Hero tag, or removed if no longer needed anywhere.
   final String challengeName;
+
+
 
   const CheckInPage({
     Key? key,
@@ -23,6 +24,7 @@ class CheckInPage extends StatefulWidget {
 }
 
 class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStateMixin {
+  
   int _currentTreeGrowthStage = 0;
   DateTime? _lastCheckInDate;
   bool _isLoading = true;
@@ -30,7 +32,7 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  final db_helper.DatabaseHelper _dbHelper = db_helper.DatabaseHelper();
+  final _db = DatabaseService();
   final FirestoreService _firestoreService = FirestoreService();
 
   // Stores the authenticated user's email, used as the userId for all data operations
@@ -123,7 +125,7 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
               : DateFormat('yyyy-MM-dd').format(DateTime.now());
 
           // Updated: saveDailyRecord for SQLite no longer passes habitId
-          await _dbHelper.saveDailyRecord(userId, dateId, {
+          await _db.saveDailyRecord(userId, dateId, {
             'userId': userId, // This will be the email for SQLite
             // 'habitId' is removed as it's no longer in the SQLite schema
             'date': DateFormat('yyyy-MM-dd').format(_latestCheckInTime ?? DateTime.now()),
@@ -149,8 +151,8 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
 
       try {
         // Updated: Calls to DatabaseHelper no longer pass habitId
-        count = await _dbHelper.getCheckInCount(userId);
-        final latestRecordData = await _dbHelper.getLatestDailyRecord(userId);
+        count = await _db.getCheckInCount(userId);
+        final latestRecordData = await _db.getLatestDailyRecord(userId);
 
         if (latestRecordData != null) {
           final dynamic timestampData = latestRecordData['checkInTimestamp'];
@@ -281,7 +283,7 @@ class _CheckInPageState extends State<CheckInPage> with SingleTickerProviderStat
         'createdAt': now.toIso8601String(),
       };
       // Updated: Call to saveDailyRecord for SQLite no longer passes habitId
-      await _dbHelper.saveDailyRecord(userId, todayDateId, dailyRecordDataForSQLite);
+      await _db.saveDailyRecord(userId, todayDateId, dailyRecordDataForSQLite);
 
       // Update state
       setState(() {

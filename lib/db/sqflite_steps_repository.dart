@@ -3,9 +3,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'db_helper.dart';
 import '../attr/step_entry.dart';
-
+import 'package:assignment_test/Willie/community_database_service.dart';
 class SqfliteStepsRepository {
-  final DbHelper _db = DbHelper();
+  final _db = DatabaseService();
+
 
   Future<void> upsert(StepEntry e) async {
     final db = await _db.database;
@@ -31,7 +32,7 @@ class SqfliteStepsRepository {
 
 
   Future<List<StepEntry>> fetchAllSteps(String userEmail) async {
-    final db = await DbHelper().database;
+    final db = await _db.database;
     final rows = await db.query(
       'steps',
       where: 'user_email = ?',

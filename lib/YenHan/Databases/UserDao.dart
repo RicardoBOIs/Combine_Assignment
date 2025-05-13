@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'database_service.dart';
-
+import 'package:assignment_test/Willie/community_database_service.dart';
 class UserDao {
-  final _db = DatabaseService.instance;
+  final _db = DatabaseService();
 
   //Register User
   Future<void> EnsureUser({

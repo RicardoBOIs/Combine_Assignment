@@ -24,7 +24,7 @@ import '../screen/home.dart'; // Import your home.dart for navigation
 import '../Willie/community_main.dart'; // For CommunityChallengesScreen
 import 'package:assignment_test/YenHan/pages/tips_education.dart'; // For TipsEducationScreen
 import '../screen/profile.dart'; // For ProfilePage
-
+import 'package:assignment_test/Willie/community_database_service.dart';
 
 class TrackHabitScreen extends StatefulWidget {
   const TrackHabitScreen({Key? key}) : super(key: key);
@@ -34,6 +34,7 @@ class TrackHabitScreen extends StatefulWidget {
 }
 
 class _TrackHabitScreenState extends State<TrackHabitScreen> {
+  final _db = DatabaseService();
   late String user_email;   //sample user email
   final HabitsRepository _repo = SqfliteHabitsRepository();
   late List<Habit> _habits=[];
@@ -124,7 +125,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   // SQLite helper – read the latest Short‑Walk total for today
   // ---------------------------------------------------------------------------
   Future<void> _initSavedTotal() async {
-    _runningTotal = await DbHelper().getLastSavedSteps() ?? 0;
+    _runningTotal = await _db.getLastSavedSteps() ?? 0;
     _lastSavedSteps = _runningTotal;
   }
 
@@ -420,7 +421,7 @@ class _TrackHabitScreenState extends State<TrackHabitScreen> {
   }
 
   Future<void> _deleteHabitAndData(String title, int index) async {
-    await DbHelper().deleteAllEntriesForHabit(title);
+    await _db.deleteAllEntriesForHabit(title);
     await SyncService().deleteEntriesForHabit(title);
     await _repo.deleteHabit(user_email, title);
     setState(() {

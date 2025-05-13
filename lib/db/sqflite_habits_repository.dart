@@ -3,9 +3,11 @@ import 'habits_repository.dart';
 import 'db_helper.dart';
 import '../attr/habit_entry.dart';
 import '../attr/habit.dart';
+import 'package:assignment_test/Willie/community_database_service.dart';
 
 class SqfliteHabitsRepository implements HabitsRepository {
-  final DbHelper _db = DbHelper();
+  final _db = DatabaseService();
+
 
   // @override
   // Future<void> upsertEntry(HabitEntry entry) async {
@@ -16,7 +18,7 @@ class SqfliteHabitsRepository implements HabitsRepository {
   @override
   Future<void> upsertEntry(HabitEntry entry) async {
     try {
-      final db = await DbHelper().database;
+      final db = await _db.database;
       print("► try insert entries: ${entry.habitTitle} on ${entry.date}");
       final id = await db.insert(
         'entries',
@@ -32,7 +34,7 @@ class SqfliteHabitsRepository implements HabitsRepository {
 
   @override
   Future<List<HabitEntry>> fetchAllEntries(String user_email, String habitTitle) =>
-      DbHelper().fetchAllEntries(user_email, habitTitle);
+      _db.fetchAllEntries(user_email, habitTitle);
 
 
   @override
@@ -68,5 +70,5 @@ class SqfliteHabitsRepository implements HabitsRepository {
 
   @override
   Future<void> deleteHabit(String userEmail, String title) =>
-      DbHelper().deleteHabit(userEmail, title);
+      _db.deleteHabit(userEmail, title);
 }

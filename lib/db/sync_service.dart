@@ -5,7 +5,7 @@ import 'db_helper.dart';
 import '../attr/habit_entry.dart';
 import '../main.dart';
 import 'package:flutter/material.dart';
-
+import 'package:assignment_test/Willie/community_database_service.dart';
 void _showStatus(String message) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     final ctx = navigatorKey.currentContext;
@@ -16,18 +16,19 @@ void _showStatus(String message) {
 }
 
 class SyncService {
+  final _db = DatabaseService();
   static final SyncService _instance = SyncService._();
 
   factory SyncService() => _instance;
 
   SyncService._();
 
-  final _dbHelper = DbHelper();
+
   final _firestore = FirebaseFirestore.instance;
   final _connectivity = Connectivity();
 
   Future<void> deleteEntriesForHabit(String habitTitle) async {
-    await _dbHelper.clearEntriesForHabit(habitTitle);
+    await _db.clearEntriesForHabit(habitTitle);
 
     final snapshot =
         await _firestore
@@ -41,7 +42,7 @@ class SyncService {
   }
 
   Future<void> pushAllEntries() async {
-    final database = await _dbHelper.database;
+    final database = await _db.database;
     final rows = await database.query('entries');
     for (final r in rows) {
       final entry = HabitEntry(
@@ -62,7 +63,7 @@ class SyncService {
 
   void start() {
     Future<void> _pushAllEntries() async {
-      final database = await _dbHelper.database;
+      final database = await _db.database;
       final rows = await database.query('entries');
       for (final r in rows) {
         final entry = HabitEntry(
@@ -99,7 +100,7 @@ class SyncService {
               (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         );
 
-        await _dbHelper.upsertEntry(entry);
+        await _db.upsertEntry(entry);
       }
     }
     _pushAllEntries();

@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
-import 'database_service.dart';
+import 'package:assignment_test/Willie/community_database_service.dart';
 
 class FootprintDao {
-  final _db = DatabaseService.instance;
+  final _db = DatabaseService();
 
   /// insert or replace by (email, date)
   Future<void> upsert(String email, String yyyyMmDd, double kg) async {
